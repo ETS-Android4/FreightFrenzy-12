@@ -1,9 +1,8 @@
-package threadedhardware;
+package org.firstinspires.ftc.teamcode.threadedhardware;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotorImplEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
@@ -92,8 +91,8 @@ public class ThreadedMotor implements Active, DcMotor {
     }
 
     //RUN_TO_POSITION not supported, use setTargetPosition instead.
-    public void setMode(DcMotor.RunMode mode){
-        if(mode != DcMotor.RunMode.RUN_TO_POSITION) motor.setMode(mode);
+    public void setMode(RunMode mode){
+        if(mode != RunMode.RUN_TO_POSITION) motor.setMode(mode);
     }
 
     public void setPowerMode(boolean power) {
@@ -125,7 +124,7 @@ public class ThreadedMotor implements Active, DcMotor {
         return motor.getPortNumber();
     }
 
-    public void setZeroPowerBehavior(DcMotor.ZeroPowerBehavior behavior){
+    public void setZeroPowerBehavior(ZeroPowerBehavior behavior){
         motor.setZeroPowerBehavior(behavior);
     }
 
@@ -178,7 +177,7 @@ public class ThreadedMotor implements Active, DcMotor {
     }
 
     public void reverse(boolean reverse) {
-        motor.setDirection(reverse ? DcMotorSimple.Direction.REVERSE : DcMotorSimple.Direction.FORWARD);
+        motor.setDirection(reverse ? Direction.REVERSE : Direction.FORWARD);
     }
 
     @Override

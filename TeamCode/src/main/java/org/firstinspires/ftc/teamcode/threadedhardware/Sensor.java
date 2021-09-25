@@ -1,4 +1,4 @@
-package threadedhardware;
+package org.firstinspires.ftc.teamcode.threadedhardware;
 
 public interface Sensor extends ThreadedHardware {
 

@@ -1,4 +1,4 @@
-package threadedhardware;
+package org.firstinspires.ftc.teamcode.threadedhardware;
 
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.DigitalChannelController;

@@ -1,4 +1,4 @@
-package threadedhardware;
+package org.firstinspires.ftc.teamcode.threadedhardware;
 
 import androidx.annotation.NonNull;
 
@@ -37,8 +37,8 @@ public class ThreadedIMU implements Sensor, BNO055IMU {
     //Defaults to name "imu"
     public ThreadedIMU(HardwareMap hwMap) {
         imu = hwMap.get(BNO055IMU.class, "imu");
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS; //Default radians
+        Parameters parameters = new Parameters();
+        parameters.angleUnit = AngleUnit.RADIANS; //Default radians
         imu.initialize(parameters);
 
         this.partNum = hardware.size();
@@ -48,8 +48,8 @@ public class ThreadedIMU implements Sensor, BNO055IMU {
 
     public ThreadedIMU(HardwareMap hwMap, String objectName) {
         imu = hwMap.get(BNO055IMU.class, objectName);
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS; //Default radians
+        Parameters parameters = new Parameters();
+        parameters.angleUnit = AngleUnit.RADIANS; //Default radians
         initialize(parameters);
 
         this.partNum = hardware.size();
@@ -94,8 +94,8 @@ public class ThreadedIMU implements Sensor, BNO055IMU {
         if(t != null && t.isAlive());
     }
 
-    public void setUnit(BNO055IMU.AngleUnit unit) {
-        BNO055IMU.Parameters param = new BNO055IMU.Parameters();
+    public void setUnit(AngleUnit unit) {
+        Parameters param = new Parameters();
         param.angleUnit = unit;
         initialize(param);
     }
