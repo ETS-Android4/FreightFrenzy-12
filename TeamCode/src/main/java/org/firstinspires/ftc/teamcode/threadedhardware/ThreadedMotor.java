@@ -31,13 +31,9 @@ public class ThreadedMotor implements Active, DcMotor {
         hardware.add(this);
     }
 
-    //Constructors
-
-
-
     //Interface methods
 
-    public void set(double velocity) {
+    public synchronized void set(double velocity) {
         runVal = velocity;
     }
 
@@ -60,7 +56,6 @@ public class ThreadedMotor implements Active, DcMotor {
 
     public void getHardware() {
         hardwareVals = new double[]{motor.getVelocity(), (double) motor.getCurrentPosition()};
-
         updateHardware = !updateHardware;
     }
 
@@ -170,10 +165,18 @@ public class ThreadedMotor implements Active, DcMotor {
         return (int) get()[1];
     }
 
-    public void setInternalPID(double... pid) {
+    public void setPID(double... pid) {
         motor.setPIDFCoefficients(RunMode.RUN_USING_ENCODER, new PIDFCoefficients(
                 pid[0], pid[1], pid[2], pid[3]
         ));
+    }
+
+    public void setPID(PIDFCoefficients pid) {
+        motor.setPIDFCoefficients(RunMode.RUN_USING_ENCODER, pid);
+    }
+
+    public PIDFCoefficients getPID(RunMode mode) {
+        return motor.getPIDFCoefficients(mode);
     }
 
     public void reverse(boolean reverse) {

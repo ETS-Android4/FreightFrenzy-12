@@ -1,12 +1,7 @@
-package org.firstinspires.ftc.teamcode.threadedhardware;/*package threadedhardware;
+package org.firstinspires.ftc.teamcode.Autonomous.RoadRunner;
 
-/*
- * Simple mecanum drive hardware implementation for REV hardware.
- */
-/*
 import androidx.annotation.NonNull;
 
-//Like all the other RoadRunner stuff, CHANGE THESE IMPORT STATEMENTS to match your programs.
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
@@ -26,17 +21,22 @@ import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roadrunner.trajectory.constraints.DriveConstraints;
 import com.acmerobotics.roadrunner.trajectory.constraints.MecanumConstraints;
 import com.acmerobotics.roadrunner.util.NanoClock;
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorImplEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
-import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
-import org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.DriveConstants;
-
-import threadedhardware.ThreadedHardware;
-import threadedhardware.ThreadedTrackingWheelLocalizer;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.teamcode.Utils.AxesSigns;
+import org.firstinspires.ftc.teamcode.Utils.BNO055IMUUtil;
 import org.firstinspires.ftc.teamcode.Utils.DashboardUtil;
 import org.firstinspires.ftc.teamcode.Utils.LynxModuleUtil;
 
@@ -44,24 +44,26 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import threadedhardware.Configuration;
-import threadedhardware.ThreadedIMU;
-import threadedhardware.ThreadedMotor;
+import static org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.DriveConstants.BASE_CONSTRAINTS;
+import static org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.DriveConstants.MOTOR_VELO_PID;
+import static org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.DriveConstants.RUN_USING_ENCODER;
+import static org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.DriveConstants.TRACK_WIDTH;
+import static org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.DriveConstants.encoderTicksToInches;
+import static org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.DriveConstants.kA;
+import static org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.DriveConstants.kStatic;
+import static org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.DriveConstants.kV;
 
-import static org.firstinspires.ftc.teamcode.RoadRunner.DriveConstants.BASE_CONSTRAINTS;
-import static org.firstinspires.ftc.teamcode.RoadRunner.DriveConstants.MOTOR_VELO_PID;
-import static org.firstinspires.ftc.teamcode.RoadRunner.DriveConstants.RUN_USING_ENCODER;
-import static org.firstinspires.ftc.teamcode.RoadRunner.DriveConstants.TRACK_WIDTH;
-import static org.firstinspires.ftc.teamcode.RoadRunner.DriveConstants.encoderTicksToInches;
-
+/*
+ * Simple mecanum drive hardware implementation for REV hardware.
+ */
 @Config
-public class RoadRunnerConfiguration extends MecanumDrive implements Configuration {
+public class SampleMecanumDriveDistance extends MecanumDrive {
+    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(6, 0, 0);
+    public static PIDCoefficients HEADING_PID = new PIDCoefficients(10, 0, 0);
 
-    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(5, 0, 0);
-    public static PIDCoefficients HEADING_PID = new PIDCoefficients(5, 0, 0);
+    public static AxesOrder axes = AxesOrder.YZX;
 
-    public static double LATERAL_MULTIPLIER = 1.04;
-    public static double inchMult = 86, offset = 0.135;
+    public static double LATERAL_MULTIPLIER = 1;
 
     public enum Mode {
         IDLE,
@@ -83,17 +85,20 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
 
     private List<Pose2d> poseHistory;
 
-    private Pose2d lastPoseOnTurn;
-
-    public ThreadedMotor leftFront, leftRear, rightRear, rightFront;
-    public List<ThreadedMotor> motors;
-    private List<LynxModule> allHubs;
-    public ThreadedIMU imu;
+    public DcMotorImplEx shooter;
+    public Servo loader, wobble, gripper;
+    private DcMotorEx leftFront, leftRear, rightRear, rightFront;
+    public List<DcMotorEx> motors;
+    public DcMotorSimple ingester;
+    public BNO055IMU imu;
+    public DistanceSensor distanceLeft, distanceRight, distanceForward, distanceBack;
+    public AnalogInput left, right, back1, back2;
     private VoltageSensor batteryVoltageSensor;
 
-    //Separated constructor and "Configure" method.
-    public RoadRunnerConfiguration(HardwareMap hardwareMap) {
-        super(DriveConstants.kV, DriveConstants.kA, DriveConstants.kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
+    private Pose2d lastPoseOnTurn;
+
+    public SampleMecanumDriveDistance(HardwareMap hardwareMap) {
+        super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
 
         dashboard = FtcDashboard.getInstance();
         dashboard.setTelemetryTransmissionInterval(25);
@@ -115,61 +120,70 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
 
         batteryVoltageSensor = hardwareMap.voltageSensor.iterator().next();
 
-        allHubs = hardwareMap.getAll(LynxModule.class);
-    }
+        for (LynxModule module : hardwareMap.getAll(LynxModule.class)) {
+            module.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
 
-    public void Configure(HardwareMap hwMap){
-
-        hardware.clear();
-
-        leftFront = new ThreadedMotor(hwMap, "front_left_motor");
-        leftRear = new ThreadedMotor(hwMap, "back_left_motor");
-        rightRear = new ThreadedMotor(hwMap, "back_right_motor");
-        rightFront = new ThreadedMotor(hwMap, "front_right_motor");
-        imu = new ThreadedIMU(hwMap);
-        motors = Arrays.asList(leftFront, leftRear, rightRear, rightFront);
+        // TODO: adjust the names of the following hardware devices to match your configuration
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
+        imu.initialize(parameters);
 
         // TODO: if your hub is mounted vertically, remap the IMU axes so that the z-axis points
         // upward (normal to the floor) using a command like the following:
-        // BNO055IMUUtil.remapAxes(imu, AxesOrder.XYZ, AxesSigns.NPN);
+        BNO055IMUUtil.remapAxes(imu, axes, AxesSigns.NPN);
 
-        for (ThreadedMotor motor : motors) {
+        leftFront = hardwareMap.get(DcMotorEx.class, "front_left_motor");
+        leftRear = hardwareMap.get(DcMotorEx.class, "back_left_motor");
+        rightRear = hardwareMap.get(DcMotorEx.class, "back_right_motor");
+        rightFront = hardwareMap.get(DcMotorEx.class, "front_right_motor");
+        shooter = hardwareMap.get(DcMotorImplEx.class,"shooter");
+        shooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        loader = hardwareMap.get(Servo.class, "loader");
+        wobble = hardwareMap.get(Servo.class, "wobble");
+        gripper = hardwareMap.get(Servo.class, "gripper");
+        ingester = hardwareMap.get(DcMotorSimple.class, "rightEncoder");
+        distanceLeft = hardwareMap.get(DistanceSensor.class, "distanceLeft");
+        distanceRight = hardwareMap.get(DistanceSensor.class, "distanceRight");
+        distanceForward = hardwareMap.get(DistanceSensor.class, "distanceForward");
+        distanceBack = hardwareMap.get(DistanceSensor.class, "distanceBack");
+
+        left = hardwareMap.get(AnalogInput.class, "leftDist");
+        right = hardwareMap.get(AnalogInput.class, "rightDist");
+        back1 = hardwareMap.get(AnalogInput.class, "back1");
+        back2 = hardwareMap.get(AnalogInput.class, "back2");
+
+        motors = Arrays.asList(leftFront, leftRear, rightRear, rightFront);
+
+        /*for (DcMotorEx motor : motors) {
             MotorConfigurationType motorConfigurationType = motor.getMotorType().clone();
             motorConfigurationType.setAchieveableMaxRPMFraction(1.0);
             motor.setMotorType(motorConfigurationType);
         }
 
-        setBulkCachingManual(true);
-
-        if (RUN_USING_ENCODER && MOTOR_VELO_PID != null) {
-            setPIDFCoefficients(MOTOR_VELO_PID);
-        }
+         */
 
         if (RUN_USING_ENCODER) {
             setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
 
+        setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        if (RUN_USING_ENCODER && MOTOR_VELO_PID != null) {
+            setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, MOTOR_VELO_PID);
+        }
+
         // TODO: reverse any motors using DcMotor.setDirection()
-        motors.get(0).reverse(true);
-        motors.get(1).reverse(true);
+        rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftFront.setDirection(DcMotorSimple.Direction.FORWARD);
+        leftRear.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        // TODO: if desired, use setLocalizer() to change the localization method.
-    }
-
-    public void setBulkCachingManual(boolean manual){
-        for (LynxModule module : allHubs) {
-            module.setBulkCachingMode(manual ? LynxModule.BulkCachingMode.MANUAL : LynxModule.BulkCachingMode.AUTO);
-        }
-    }
-
-    public void clearBulkCache(){
-        for (LynxModule module : allHubs) {
-            if(module.getBulkCachingMode() == LynxModule.BulkCachingMode.MANUAL) {
-                System.out.println("Clearing");
-                module.clearBulkCache();
-                //module.getBulkData();
-            }
-        }
+        // TODO: if desired, use setLocalizer() to change the localization method
+        // for instance, setLocalizer(new ThreeTrackingWheelLocalizer(...));
+        //setLocalizer(new StandardTrackingWheelLocalizer(hardwareMap));
     }
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
@@ -308,7 +322,7 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         fieldOverlay.setStroke("#3F51B5");
         DashboardUtil.drawRobot(fieldOverlay, currentPose);
 
-        dashboard.sendTelemetryPacket(packet);
+        //dashboard.sendTelemetryPacket(packet);
     }
 
     public void waitForIdle() {
@@ -321,28 +335,27 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         return mode != Mode.IDLE;
     }
 
-    //Need to fix these at some point
     public void setMode(DcMotor.RunMode runMode) {
-        for (ThreadedMotor motor : motors) {
+        for (DcMotorEx motor : motors) {
             motor.setMode(runMode);
         }
     }
 
     public void setZeroPowerBehavior(DcMotor.ZeroPowerBehavior zeroPowerBehavior) {
-        for (ThreadedMotor motor : motors) {
+        for (DcMotorEx motor : motors) {
             motor.setZeroPowerBehavior(zeroPowerBehavior);
         }
     }
 
-    public PIDFCoefficients getPIDFCoefficients() { //Removed DcMotor.RunMode runMode
-        double[] temp = motors.get(0).getPID();
-        PIDFCoefficients coefficients = new PIDFCoefficients(temp[0], temp[1], temp[2], temp[3]); //Change last value later
-        return new PIDFCoefficients(coefficients.p, coefficients.i, coefficients.d, coefficients.f);
+    public PIDFCoefficients getPIDFCoefficients(DcMotor.RunMode runMode) {
+        PIDFCoefficients coefficients = leftFront.getPIDFCoefficients(runMode);
+        return coefficients;
     }
 
-    public void setPIDFCoefficients(PIDFCoefficients coefficients) { //Removed DcMotor.RunMode runMode
-        for (ThreadedMotor motor : motors) {
-            motor.setPID(coefficients);
+    public void setPIDFCoefficients(DcMotor.RunMode runMode, PIDFCoefficients coefficients) {
+        PIDFCoefficients compensatedCoefficients = new PIDFCoefficients(coefficients.p,coefficients.i,coefficients.d,coefficients.f * 12 / batteryVoltageSensor.getVoltage());
+        for (DcMotorEx motor : motors) {
+            motor.setPIDFCoefficients(runMode, compensatedCoefficients);
         }
     }
 
@@ -350,32 +363,30 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
     @Override
     public List<Double> getWheelPositions() {
         List<Double> wheelPositions = new ArrayList<>();
-        for (ThreadedHardware motor : motors) {
-            wheelPositions.add(encoderTicksToInches(motor.get()[1]));
+        for (DcMotorEx motor : motors) {
+            wheelPositions.add(encoderTicksToInches(motor.getCurrentPosition()));
         }
         return wheelPositions;
     }
 
     public List<Double> getWheelVelocities() {
         List<Double> wheelVelocities = new ArrayList<>();
-        for (ThreadedHardware motor : motors) {
-            wheelVelocities.add(encoderTicksToInches(motor.get()[0]));
+        for (DcMotorEx motor : motors) {
+            wheelVelocities.add(encoderTicksToInches(motor.getVelocity()));
         }
         return wheelVelocities;
     }
 
     @Override
     public void setMotorPowers(double v, double v1, double v2, double v3) {
-        motors.get(0).setPower(v);
-        motors.get(1).setPower(v1);
-        motors.get(2).setPower(v2);
-        motors.get(3).setPower(v3);
+        leftFront.setPower(v);
+        leftRear.setPower(v1);
+        rightRear.setPower(v2);
+        rightFront.setPower(v3);
     }
 
-    //Fix later
     @Override
     public double getRawExternalHeading() {
-        return imu.get()[0];
+        return imu.getAngularOrientation().firstAngle;
     }
 }
- */

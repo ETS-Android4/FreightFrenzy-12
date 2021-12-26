@@ -3,16 +3,20 @@ package org.firstinspires.ftc.teamcode.threadedhardware;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-
 import java.util.List;
 
 public class SampleConfiguration implements Configuration {
 
+    //Expansion hubs, which control access to physical hardware.
     private List<LynxModule> allHubs;
 
-    public ThreadedMotor backLeft, frontLeft, frontRight, backRight;
+    public ThreadedMotor backLeft, frontLeft, frontRight, backRight, spinner, slides, ingest, preIngest;
 
-    public ThreadedIMU imu;
+    public ThreadedServo dropper, flipdown;
+
+    public ThreadedDigitalSensor limit;
+
+    public ThreadedIMU imu; //A gyroscope in the expansion hubs (inertial measurement unit)
 
     public void Configure(HardwareMap hwMap){
         //Create all hardware objects here.
@@ -21,36 +25,46 @@ public class SampleConfiguration implements Configuration {
         //This is an example, and is what we used for our Maxbotix distance sensors.
         ThreadedAnalogSensor.InterpretVoltage distance = ((double voltage, double max) -> 87.4 * (voltage - 0.138));
 
-        hardware.clear();
-        backLeft = new ThreadedMotor(hwMap, "back_left_motor");
-        frontLeft = new ThreadedMotor(hwMap, "front_left_motor");
-        frontRight = new ThreadedMotor(hwMap, "front_right_motor");
-        backRight = new ThreadedMotor(hwMap, "back_right_motor");
-        imu = new ThreadedIMU(hwMap); //Defaults to the name "imu", which is default in the hub configuration. There's another constructor that takes a name if your IMU is named differently.
+        hardware.clear(); //Hardware is an ArrayList on the Hardware interface, which the Configuration interface extends.
+        ingest = new ThreadedMotor(hwMap, "ingest");
+        preIngest = new ThreadedMotor(hwMap, "preingest");
+        spinner = new ThreadedMotor(hwMap, "spinner");
+        slides = new ThreadedMotor(hwMap, "slides");
+        dropper = new ThreadedServo(hwMap, "dropper");
+        flipdown = new ThreadedServo(hwMap, "flipdown");
+        limit = new ThreadedDigitalSensor(hwMap, "limit");
         backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        spinner.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
+        slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        ingest.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        preIngest.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        spinner.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        slides.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        imu = new ThreadedIMU(hwMap);
 
-        frontRight.reverse(true);
-        backRight.reverse(true);
+        frontLeft.reverse(true);
+        backLeft.reverse(true);
+        ingest.reverse(true);
 
-        //Below are other configuration activities that are necessary for writing to file.
         allHubs = hwMap.getAll(LynxModule.class);
 
         setBulkCachingManual(true);
     }
 
     public void setBulkCachingManual(boolean manual){
+        //Manual bulk caching lets me control exactly when to read from the hardware, which lets me optimize my loop times.
         for (LynxModule module : allHubs) {
             module.setBulkCachingMode(manual ? LynxModule.BulkCachingMode.MANUAL : LynxModule.BulkCachingMode.AUTO);
         }
