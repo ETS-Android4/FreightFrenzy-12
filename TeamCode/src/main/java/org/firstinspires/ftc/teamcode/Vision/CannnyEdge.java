@@ -15,7 +15,7 @@ import org.openftc.easyopencv.OpenCvInternalCamera;
 import org.openftc.easyopencv.OpenCvPipeline;
 
 @Config
-@Autonomous
+//@Autonomous
 public class CannnyEdge extends LinearOpMode {
 
     private final int rows = 640;

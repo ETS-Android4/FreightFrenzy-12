@@ -34,7 +34,7 @@ import java.util.List;
  *YES
  */
 @Config
-@Autonomous
+//@Autonomous
 public class twoScanPipeline extends LinearOpMode {
 
     private static int rows = 320;

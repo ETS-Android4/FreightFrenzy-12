@@ -28,7 +28,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
  *YES
  */
 @Config
-@Autonomous
+//@Autonomous
 public class HoughCircles extends LinearOpMode {
 
     private final int rows = 640;
