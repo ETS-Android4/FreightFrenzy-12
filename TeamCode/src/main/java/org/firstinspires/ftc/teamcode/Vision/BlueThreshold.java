@@ -29,7 +29,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
  *YES
  */
 @Config
-@Autonomous
+//@Autonomous
 public class BlueThreshold extends LinearOpMode {
 
     private final int rows = 640;

@@ -34,7 +34,7 @@ import java.util.List;
  *YES
  */
 @Config
-@Autonomous(name= "SampleCVOpMode")
+//@Autonomous(name= "SampleCVOpMode")
 public class SampleCVOpMode extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
 

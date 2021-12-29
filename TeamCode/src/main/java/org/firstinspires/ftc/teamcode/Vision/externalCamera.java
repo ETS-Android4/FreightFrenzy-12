@@ -24,7 +24,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
  *YES
  */
 @Config
-@Autonomous
+//@Autonomous
 public class externalCamera extends LinearOpMode {
 
     private final int rows = 640;

@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.threadedhardware;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@TeleOp
+//@TeleOp
 public class SampleTeleOp extends LinearOpMode {
 
     HardwareThread hardware;

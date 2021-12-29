@@ -29,7 +29,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
  *YES
  */
 @Config
-@Autonomous
+//@Autonomous
 public class Morphology extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
 

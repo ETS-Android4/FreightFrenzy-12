@@ -33,7 +33,7 @@ import java.util.List;
  *YES
  */
 @Config
-@Autonomous
+//@Autonomous
 public class AvgPixelColorOpMode extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
 

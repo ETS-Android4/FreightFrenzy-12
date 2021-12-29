@@ -14,7 +14,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.HardwareConfigs.shooterTestConfig;
 
 @Config
-@TeleOp
+//@TeleOp
 public class DuckProfileTest extends LinearOpMode {
 
     public static int goalPos = 1000, goalVel = 0, goalAcc = 0, maxVel = 250, maxAccel = 400, maxJerk = 1000;

@@ -27,7 +27,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
  *YES
  */
 @Config
-@Autonomous
+//@Autonomous
 public class SmoothingErodingDilatingOpMode extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
 

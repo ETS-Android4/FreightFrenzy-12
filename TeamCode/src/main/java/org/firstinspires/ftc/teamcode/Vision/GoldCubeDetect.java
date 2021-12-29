@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Config
-@Autonomous
+//@Autonomous
 public class GoldCubeDetect extends LinearOpMode {
 
     private final int rows = 640;
