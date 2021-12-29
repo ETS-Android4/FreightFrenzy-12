@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.SampleMecanumDriv
 @Config
 @Autonomous(group = "drive")
 public class StraightTest extends LinearOpMode {
-    public static double DISTANCE = 60; // in
+    public static double DISTANCE = 10; // in
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -40,6 +40,6 @@ public class StraightTest extends LinearOpMode {
         telemetry.addData("finalHeading", poseEstimate.getHeading());
         telemetry.update();
 
-        while (!isStopRequested() && opModeIsActive()) ;
+        while (!isStopRequested() && opModeIsActive());
     }
 }
