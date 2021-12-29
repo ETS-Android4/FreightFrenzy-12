@@ -18,7 +18,7 @@ import org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.SampleMecanumDrive;
  */
 @Disabled
 @Config
-@Autonomous(group = "drive")
+//@Autonomous(group = "drive")
 public class ZeroStackPath extends LinearOpMode {
     private Pose2d startPose = new Pose2d(-63.0, -36.0, Math.toRadians(0));
     private Pose2d shootPose = new Pose2d(-2.0, -32.0, Math.toRadians(0));

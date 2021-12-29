@@ -19,7 +19,7 @@ import org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.SampleMecanumDrive;
  */
 @Disabled
 @Config
-@Autonomous(group = "drive")
+//@Autonomous(group = "drive")
 public class OneStackPath extends LinearOpMode {
 
     private DriveConstraints constraints = new DriveConstraints(45.0, 30.0, 0.0, Math.toRadians(270), Math.toRadians(270), 0.0);

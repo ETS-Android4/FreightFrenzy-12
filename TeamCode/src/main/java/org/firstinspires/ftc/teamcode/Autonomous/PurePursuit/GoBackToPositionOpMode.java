@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.SampleMecanumDrive;
 
-@TeleOp
+//@TeleOp
 public class GoBackToPositionOpMode extends LinearOpMode {
     SampleMecanumDrive odometry;
     RobotMovement drive;

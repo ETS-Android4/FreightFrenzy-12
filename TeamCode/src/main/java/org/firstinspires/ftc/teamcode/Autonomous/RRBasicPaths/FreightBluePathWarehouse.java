@@ -36,7 +36,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
  * drives in a DISTANCE-by-DISTANCE square indefinitely.
  */
 @Config
-@Autonomous(group = "drive")
+//@Autonomous(group = "drive")
 public class FreightBluePathWarehouse extends LinearOpMode {
 
     public static int startHeading = 90;

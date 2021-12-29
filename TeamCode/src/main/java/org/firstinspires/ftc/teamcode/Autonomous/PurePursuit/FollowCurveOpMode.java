@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.SampleMecanumDrive;
 
 import java.util.ArrayList;
 
-@Autonomous
+//@Autonomous
 public class FollowCurveOpMode extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {

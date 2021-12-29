@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.Autonomous.RoadRunner.SampleMecanumDrive;
  * drives in a DISTANCE-by-DISTANCE square indefinitely.
  */
 @Config
-@Autonomous(group = "drive")
+//@Autonomous(group = "drive")
 public class TurnAndStraight extends LinearOpMode {
     public static double DISTANCE = 36; // in
 
