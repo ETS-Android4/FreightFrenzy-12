@@ -26,6 +26,10 @@ public class SampleConfiguration implements Configuration {
         ThreadedAnalogSensor.InterpretVoltage distance = ((double voltage, double max) -> 87.4 * (voltage - 0.138));
 
         hardware.clear(); //Hardware is an ArrayList on the Hardware interface, which the Configuration interface extends.
+        backLeft = new ThreadedMotor(hwMap, "back_left_motor");
+        frontLeft = new ThreadedMotor(hwMap, "front_left_motor");
+        frontRight = new ThreadedMotor(hwMap, "front_right_motor");
+        backRight = new ThreadedMotor(hwMap, "back_right_motor");
         ingest = new ThreadedMotor(hwMap, "ingest");
         preIngest = new ThreadedMotor(hwMap, "preingest");
         spinner = new ThreadedMotor(hwMap, "spinner");

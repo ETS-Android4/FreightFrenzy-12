@@ -40,6 +40,8 @@ public class ThreadedDigitalSensor implements Sensor, DigitalChannel {
     public void getHardware() {
         hardwareVals = new double[]{sensor.getState() ? 1 : 0};
 
+        System.out.println(sensor.getState());
+
         //Setting a volatile variable saves all values to main memory
         updateVals = !updateVals;
     }
