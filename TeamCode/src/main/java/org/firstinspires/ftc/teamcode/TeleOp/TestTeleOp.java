@@ -60,7 +60,7 @@ public class TestTeleOp extends LinearOpMode {
         waitForStart();
 
         Sequence waitMillis = new Sequence(() -> {
-            sleep(300);
+            sleep(500);
             turning = false;
         }, null);
         waitThread = new Thread(waitMillis);
@@ -97,8 +97,8 @@ public class TestTeleOp extends LinearOpMode {
             else if(invert < -Math.PI) invert += 2 * Math.PI;
             invert = invert < 0 ? 1 : -1;
             double power = invert * 2 * (Math.abs(tempHeading - tempTarget) > Math.PI ? (Math.abs(tempHeading > Math.PI ? 2 * Math.PI - tempHeading : tempHeading) + Math.abs(tempTarget > Math.PI ? 2 * Math.PI - tempTarget : tempTarget)) : Math.abs(tempHeading - tempTarget)); //Long line, but the gist is if you're calculating speed in the wrong direction, git gud.
-            if(Math.abs(power) < 0.1) power = 0;
-            if(Math.abs(gamepad1.right_stick_x) > 0.05) turning = true;
+            if(Math.abs(power) < 0.15) power = 0;
+            if(Math.abs(gamepad1.right_stick_x) > 0.1) turning = true;
 
             else if(turning && !waitThread.isAlive()) waitThread.start();
 

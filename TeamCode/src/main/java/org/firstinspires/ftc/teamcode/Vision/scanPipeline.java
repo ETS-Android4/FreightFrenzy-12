@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.Vision;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -28,6 +29,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
  *YES
  */
 @Config
+@Disabled
 //@Autonomous
 public class scanPipeline extends LinearOpMode {
 
