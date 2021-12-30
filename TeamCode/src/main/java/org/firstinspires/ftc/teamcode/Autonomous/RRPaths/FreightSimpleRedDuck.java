@@ -33,9 +33,9 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
  * Op mode for tuning follower PID coefficients (located in the drive base classes). The robot
  * drives in a DISTANCE-by-DISTANCE square indefinitely.
  */
+
 @Config
-@Disabled
-//@Autonomous(group = "drive")
+@Autonomous(group = "drive")
 public class FreightSimpleRedDuck extends LinearOpMode {
 
     public static int startHeading = 0;
@@ -50,7 +50,7 @@ public class FreightSimpleRedDuck extends LinearOpMode {
 
     public static double level1 = 900, level2 = 1900, sensorSideOffset, sensorStrightOffset;
 
-    public static double OPEN = 0, CLOSED = 0, first = 24, back = 14, forward1 = 12, leaveSpinner = 8, front = 20, forward2 = 14, strafe = 54; //ALL VALUES NEED TO BE TUNED
+    public static double OPEN = 0, CLOSED = 0, first = 12, back = 14, forward1 = 20, leaveSpinner = 8, front = 20, forward2 = 14, strafe = 54; //ALL VALUES NEED TO BE TUNED
 
     SampleMecanumDrive drive;
 
@@ -77,6 +77,14 @@ public class FreightSimpleRedDuck extends LinearOpMode {
         double slideTicks = 0;
         if(duckLocation > 0) slideTicks = duckLocation == 1 ? level1 : level2;
 
+        drive.turn(Math.toRadians(-90));
+
+        try {
+            while(!isStopRequested());
+        } catch(Exception e) {
+
+        }
+
         Trajectory inchUp = drive.trajectoryBuilder(startPose)
                 .forward(first)
                 .build();
@@ -84,26 +92,19 @@ public class FreightSimpleRedDuck extends LinearOpMode {
 
         drive.turn(Math.toRadians(-90)); //Might need to be positive
 
-        Trajectory moveForward = drive.trajectoryBuilder(startPose)
+        Trajectory moveForward = drive.trajectoryBuilder(drive.getPoseEstimate())
                 .forward(forward1)
                 .build();
         drive.followTrajectory(moveForward);
-
-        drive.turn(Math.toRadians(-90)); //Might need to be positive
-
-        Trajectory f2 = drive.trajectoryBuilder(startPose)
-                .forward(forward2)
-                .build();
-        drive.followTrajectory(f2);
 
         drive.spinner.setPower(-0.4);
         sleep(4500);
         drive.spinner.setPower(0);
 
-        Trajectory goToSpin = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(back)
+        Trajectory f2 = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .strafeLeft(forward2)
                 .build();
-        drive.followTrajectory(goToSpin);
+        drive.followTrajectory(f2);
     }
 
     public void imuTurn(double angle) {
