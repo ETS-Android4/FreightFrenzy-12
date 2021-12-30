@@ -77,14 +77,6 @@ public class FreightSimpleRedDuck extends LinearOpMode {
         double slideTicks = 0;
         if(duckLocation > 0) slideTicks = duckLocation == 1 ? level1 : level2;
 
-        drive.turn(Math.toRadians(-90));
-
-        try {
-            while(!isStopRequested());
-        } catch(Exception e) {
-
-        }
-
         Trajectory inchUp = drive.trajectoryBuilder(startPose)
                 .forward(first)
                 .build();
