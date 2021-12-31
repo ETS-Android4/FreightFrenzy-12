@@ -43,19 +43,11 @@ public class TestTeleOp extends LinearOpMode {
 
         sleep(1000);
 
-        config.slides.setPower(-0.2);
+        config.slides.setPower(-0.5);
         while(!isStopRequested() && config.limit.get()[0] == 0) {}
         config.slides.setPower(0);
 
         slidesOffset = config.slides.get()[1];
-
-        while(!isStarted() && !isStopRequested()) {
-            telemetry.addData("Slides: ", config.slides.get()[1]);
-            System.out.println(config.slides.get()[1]);
-            telemetry.addData("Limit: ", config.limit.get()[0]);
-            System.out.println(config.limit.get()[0]);
-            telemetry.update();
-        }
 
         waitForStart();
 

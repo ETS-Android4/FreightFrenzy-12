@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.Vision;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -71,6 +72,7 @@ public class BarCodeDuckPipeline extends LinearOpMode {
         webCam.openCameraDevice();//open camera
         webCam.setPipeline(new duckScanPipeline());
         webCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
+        FtcDashboard.getInstance().startCameraStream(webCam, 0);
         //webcam2.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
         //width, height
         //width = height in this case, because camera is in portrait mode.
