@@ -16,9 +16,9 @@ public class TestTeleOp extends LinearOpMode {
 
     boolean turning = false;
 
-    public static double OPEN = 0.02, CLOSE = 0.64, FLIPDOWN = 1; //0.23 dropper position to for auto lowest level
+    public static double OPEN = 0.02, CLOSE = 0.69, FLIPDOWN = 1; //0.23 dropper position to for auto lowest level
 
-    public static int[] levels = {0, 660, 2000, 2800};
+    public static int[] levels = {0, 660, 1800, 2500};
 
     private int currentLevel = 0;
 
@@ -71,13 +71,13 @@ public class TestTeleOp extends LinearOpMode {
 
             config.ingest.setPower(ingesterSpeed);
             config.spinner.setPower(gamepad2.left_stick_y);
-            config.preIngest.setPower(ingesterSpeed);
+            config.preIngest.setPower(ingesterSpeed * 0.6);
 
             if(gamepad1.back) config.flipdown.set(FLIPDOWN);
 
-            if(gamepad1.a) ingesterSpeed = 1;
-            else if(gamepad1.y) ingesterSpeed = -1;
-            else if(gamepad1.back) ingesterSpeed = 0;
+            if(gamepad1.a || gamepad2.a) ingesterSpeed = 1;
+            else if(gamepad1.y || gamepad2.y) ingesterSpeed = -1;
+            else if(gamepad1.back || gamepad2.back) ingesterSpeed = 0;
 
             double imuHeading = config.imu.get()[0];
             double tempHeading = imuHeading;
@@ -88,7 +88,7 @@ public class TestTeleOp extends LinearOpMode {
             if(invert > Math.PI) invert -= 2 * Math.PI;
             else if(invert < -Math.PI) invert += 2 * Math.PI;
             invert = invert < 0 ? 1 : -1;
-            double power = invert * 1 * (Math.abs(tempHeading - tempTarget) > Math.PI ? (Math.abs(tempHeading > Math.PI ? 2 * Math.PI - tempHeading : tempHeading) + Math.abs(tempTarget > Math.PI ? 2 * Math.PI - tempTarget : tempTarget)) : Math.abs(tempHeading - tempTarget)); //Long line, but the gist is if you're calculating speed in the wrong direction, git gud.
+            double power = invert * 0.8 * (Math.abs(tempHeading - tempTarget) > Math.PI ? (Math.abs(tempHeading > Math.PI ? 2 * Math.PI - tempHeading : tempHeading) + Math.abs(tempTarget > Math.PI ? 2 * Math.PI - tempTarget : tempTarget)) : Math.abs(tempHeading - tempTarget)); //Long line, but the gist is if you're calculating speed in the wrong direction, git gud.
             if(Math.abs(power) < 0.05) power *= 0.5;
             if(Math.abs(gamepad1.right_stick_x) > 0.1) turning = true;
 
@@ -96,14 +96,14 @@ public class TestTeleOp extends LinearOpMode {
 
             //config.slides.setPower(gamepad2.left_stick_y);
             if((gamepad1.dpad_up || gamepad2.dpad_up) && !levelPressed) {
-                currentLevel += currentLevel < 2 ? 1 : 0;
+                currentLevel += currentLevel < 3 ? 1 : 0;
                 levelPressed = true;
             }
             else if((gamepad1.dpad_down || gamepad2.dpad_down) && !levelPressed) {
                 currentLevel -= currentLevel > 0 ? 1 : 0;
                 levelPressed = true;
             }
-            else if(!gamepad1.dpad_down && !gamepad1.dpad_up) levelPressed = false;
+            else if(!gamepad1.dpad_down && !gamepad1.dpad_up && !gamepad2.dpad_down && !gamepad2.dpad_up) levelPressed = false;
 
             double tempPos = config.slides.get()[1] - slidesOffset;
 
@@ -128,10 +128,10 @@ public class TestTeleOp extends LinearOpMode {
             else if(gamepad1.x) config.dropper.set(CLOSE);
             else if(gamepad1.b) config.dropper.set(OPEN);
 
-            double speed = gamepad1.left_bumper ? 0.6 : 1;
-            double x = 0.4 * gamepad1.left_trigger - 0.4 * gamepad1.right_trigger + gamepad1.left_stick_x, y = gamepad1.left_stick_y, a = gamepad1.right_stick_x;
+            double speed = gamepad1.right_bumper || gamepad2.right_bumper ? 0.3 : 1;
+            double x = 0.6 * -gamepad1.left_trigger + 0.6 * gamepad1.right_trigger + gamepad1.left_stick_x, y = gamepad1.left_stick_y, a = gamepad1.right_stick_x;
 
-            setPower(-speed * x, -speed * y, speed * a + power);
+            setPower(speed * x, -speed * y, speed * a + power);
 
             telemetry.addData("Heading: ", imuHeading);
             telemetry.addData("Power: ", power);

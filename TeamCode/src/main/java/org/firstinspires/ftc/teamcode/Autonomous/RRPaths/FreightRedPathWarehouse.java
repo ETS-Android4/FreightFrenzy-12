@@ -4,11 +4,10 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -36,24 +35,20 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
  * Op mode for tuning follower PID coefficients (located in the drive base classes). The robot
  * drives in a DISTANCE-by-DISTANCE square indefinitely.
  */
+
 @Config
-@Disabled
-//@Autonomous(group = "drive")
+@Autonomous(group = "drive")
 public class FreightRedPathWarehouse extends LinearOpMode {
 
-    public static int startHeading = -90;
+    public static double back = 40, toHub = 6, toWall = 45, park = 32, scor = 3;
 
-    public static double hubX = -34, hubY = -12, parkX = -62, parkY = 42;
+    private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 
-    private Pose2d startPose = new Pose2d(62.0, 12.0, Math.toRadians(startHeading)); //Need to vary heading
-    private Pose2d hubPose = new Pose2d(hubX, hubY, Math.toRadians(startHeading));
-    private Pose2d parkPose = new Pose2d(parkX, parkY, Math.toRadians(startHeading - 90));
+    public static int duckLocation = -1, manualDuckLocation = -1;
 
-    public static int duckLocation = -1;
+    public static double level1 = 660, level2 = 2000, sensorSideOffset, sensorStrightOffset;
 
-    public static double level1 = 900, level2 = 1900, sensorSideOffset, sensorStrightOffset;
-
-    public static double OPEN = 0, CLOSED = 0, back = 8, forward1 = 24, front = 48, forward2 = 20, strafe = 54;
+    public static double OPEN = 0.02, CLOSED = 0.65, HALF = 0.21;
 
     SampleMecanumDrive drive;
 
@@ -69,6 +64,7 @@ public class FreightRedPathWarehouse extends LinearOpMode {
         webCam.openCameraDevice();//open camera
         webCam.setPipeline(new duckScanPipeline());
         webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
+        FtcDashboard.getInstance().startCameraStream(webCam, 0);
         ElapsedTime time = new ElapsedTime();
         double lastTime = 0;
 
@@ -77,71 +73,92 @@ public class FreightRedPathWarehouse extends LinearOpMode {
 
         double slideTicks = 0;
         if(duckLocation > 0) slideTicks = duckLocation == 1 ? level1 : level2;
+        if(manualDuckLocation != -1) slideTicks = manualDuckLocation < 2 ? (manualDuckLocation == 0 ? 0 : level1) : level2;
+
+        System.out.println("Duck: " + duckLocation + ", ticks: " + slideTicks);
 
         telemetry.addData("Position: ", drive.getPoseEstimate());
         telemetry.update();
 
-        while(Math.abs(drive.slides.getCurrentPosition() - slideTicks) > 50) {
-            drive.slides.setPower(-0.8);
-        }
-        drive.slides.setPower(0);
+        drive.slides.setTargetPosition((int) slideTicks);
+        drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        drive.slides.setPower(1);
 
-        Trajectory hub = drive.trajectoryBuilder(startPose)
-                .splineTo(hubPose.vec(), hubPose.getHeading())
+        Trajectory backup = drive.trajectoryBuilder(startPose)
+                .back(back)
+                .build();
+        drive.followTrajectory(backup);
+
+        drive.turn(Math.toRadians(90));
+
+        drive.dropper.setPosition(HALF);
+        sleep(300);
+
+        Trajectory hub = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .back(toHub)
                 .build();
         drive.followTrajectory(hub);
-
-        /*Trajectory goToDropOff = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(front)
-                .build();
-        drive.followTrajectory(goToDropOff);
-
-         */
-
-        //imuTurn(Math.toRadians(0));
-
-        /*Trajectory goToDropOff2 = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(forward2)
-                .build();
-        drive.followTrajectory(goToDropOff2);
-
-         */
 
         drive.dropper.setPosition(OPEN);
         sleep(600);
 
-        /*Trajectory chimichanga = drive.trajectoryBuilder(drive.getPoseEstimate())
-                //.splineTo(tapedParkPose.vec(), 0)
-                .back(-2)
+        Trajectory straf = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .strafeRight(toWall)
                 .build();
-        drive.followTrajectory(chimichanga);
+        drive.followTrajectory(straf);
 
-        Trajectory shimishanga = drive.trajectoryBuilder(drive.getPoseEstimate())
-                //.splineTo(tapedParkPose.vec(), 0)
-                .forward(-2)
-                .build();
-        drive.followTrajectory(shimishanga);
-
-        Trajectory toPark = drive.trajectoryBuilder(drive.getPoseEstimate())
-                //.splineTo(tapedParkPose.vec(), 0)
-                .strafeRight(strafe)
-                .build();
-        drive.followTrajectory(toPark);
-
-         */
-
-        Trajectory toPark = drive.trajectoryBuilder(drive.getPoseEstimate(), true)
-                .splineTo(new Vector2d(parkPose.getX(), parkPose.getY() - 36), parkPose.getHeading())
-                .splineTo(parkPose.vec(), parkPose.getHeading())
-                .build();
-        drive.followTrajectory(toPark);
+        drive.slides.setTargetPosition(0);
+        drive.slides.setPower(-0.6);
 
         drive.dropper.setPosition(CLOSED);
+        drive.flipdown.setPosition(1);
+        sleep(300);
 
-        while(Math.abs(drive.slides.getCurrentPosition()) > 50 && !drive.limit.getState()) {
-            drive.slides.setPower(0.8);
-        }
-        drive.slides.setPower(0);
+        drive.ingester.setPower(-1);
+        drive.preingest.setPower(1);
+
+        Trajectory toPark = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .forward(park)
+                .build();
+        drive.followTrajectory(toPark);
+
+        Trajectory back = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .back(park)
+                .build();
+        drive.followTrajectory(back);
+
+        drive.slides.setTargetPosition((int) level2);
+        drive.slides.setPower(1);
+
+        drive.preingest.setPower(0);
+        drive.ingester.setPower(0);
+
+        Trajectory strafe = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .strafeLeft(toWall)
+                .build();
+        drive.followTrajectory(strafe);
+
+        Trajectory score = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .back(scor)
+                .build();
+        drive.followTrajectory(score);
+
+        drive.dropper.setPosition(OPEN);
+        sleep(600);
+
+        Trajectory toWal = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .strafeRight(toWall + 1)
+                .build();
+        drive.followTrajectory(toWal);
+
+        drive.dropper.setPosition(CLOSED);
+        drive.slides.setTargetPosition(0);
+        drive.slides.setPower(-0.8);
+
+        Trajectory parc = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .forward(park)
+                .build();
+        drive.followTrajectory(parc);
     }
 
     public void imuTurn(double angle) {
