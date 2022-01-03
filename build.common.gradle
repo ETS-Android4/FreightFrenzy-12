@@ -47,16 +47,13 @@ android {
         }
     }
 
-    aaptOptions {
-        noCompress "tflite"
-    }
 
     defaultConfig {
         signingConfig signingConfigs.debug
         applicationId 'com.qualcomm.ftcrobotcontroller'
-        minSdkVersion 23
+        minSdkVersion 25
         //noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 29
+        targetSdkVersion 30
 
         /**
          * We keep the versionCode and versionName of robot controller applications in sync with

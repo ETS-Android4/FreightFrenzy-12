@@ -128,7 +128,7 @@ public class TestTeleOp extends LinearOpMode {
             else if(gamepad1.x) config.dropper.set(CLOSE);
             else if(gamepad1.b) config.dropper.set(OPEN);
 
-            double speed = gamepad1.right_bumper || gamepad2.right_bumper ? 0.3 : 1;
+            double speed = gamepad1.right_bumper ? 0.3 : 1;
             double x = 0.6 * -gamepad1.left_trigger + 0.6 * gamepad1.right_trigger + gamepad1.left_stick_x, y = gamepad1.left_stick_y, a = gamepad1.right_stick_x;
 
             setPower(speed * x, -speed * y, speed * a + power);
@@ -138,6 +138,7 @@ public class TestTeleOp extends LinearOpMode {
             telemetry.addData("Last Heading: ", lastHeading);
             telemetry.addData("Level: ", currentLevel);
             telemetry.addData("Slide Height: ", tempPos);
+            //telemetry.addData("Drivetrain Current Draw: ");
             //telemetry.addData("Limit: ", config.limit.get()[0]);
            // telemetry.addData("Expected Height: ", levels[currentLevel]);
             telemetry.update();

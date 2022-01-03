@@ -41,11 +41,9 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightRedPathDucks extends LinearOpMode {
 
-    public static double back = 6, toSpin = 21, strafe = 37, toHub = 32, park = 18, spinnerX = 0, spinnerY = 0;
+    public static double back = 6, pastBarCode = 30, toHub = 28, park = 14, spinnerX = -5, spinnerY = -21;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
-
-    public static Vector2d spinner = new Vector2d(spinnerX, spinnerY);
 
     public static int duckLocation = -1, manualDuckLocation = -1;
 
@@ -83,8 +81,8 @@ public class FreightRedPathDucks extends LinearOpMode {
         telemetry.addData("Position: ", drive.getPoseEstimate());
         telemetry.update();
 
-        Trajectory backup = drive.trajectoryBuilder(startPose)
-                .strafeTo(spinner)
+        Trajectory backup = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .strafeTo(new Vector2d(spinnerX, spinnerY))
                 .build();
         drive.followTrajectory(backup);
 
@@ -92,16 +90,21 @@ public class FreightRedPathDucks extends LinearOpMode {
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
 
-        drive.spinner.setPower(-0.8);
+        drive.spinner.setPower(0.8);
         sleep(3000);
         drive.spinner.setPower(0);
 
-        Trajectory straf = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(back)
-                .build();
-        drive.followTrajectory(straf);
+        Pose2d temp = drive.getPoseEstimate();
+        drive.setPoseEstimate(new Pose2d(temp.getX(), temp.getY(), 0));
 
+        Trajectory back = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .back(pastBarCode)
+                .build();
+        drive.followTrajectory(back);
+
+        drive.turn(Math.toRadians(-85));
         drive.dropper.setPosition(HALF);
+        sleep(300);
 
         Trajectory hub = drive.trajectoryBuilder(drive.getPoseEstimate())
                 .back(toHub)
@@ -122,7 +125,7 @@ public class FreightRedPathDucks extends LinearOpMode {
         drive.dropper.setPosition(CLOSED);
 
         Trajectory toPark = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeRight(park)
+                .strafeLeft(park)
                 .build();
         drive.followTrajectory(toPark);
     }
