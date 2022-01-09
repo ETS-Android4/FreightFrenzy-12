@@ -3,24 +3,18 @@ package org.firstinspires.ftc.teamcode.Vision;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.robotcontroller.external.samples.SensorColor;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Point;
-import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
-import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvPipeline;
@@ -44,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Config
 @TeleOp
-public class HubVisionPipeline extends LinearOpMode {
+public class HubVisionPipelineBlue extends LinearOpMode {
 
     private final int rows = 640;
     private final int cols = 480;
@@ -171,15 +165,15 @@ public class HubVisionPipeline extends LinearOpMode {
             Mat erode = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(erodeSize, erodeSize));
             Mat dilate = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(dilateSize, dilateSize));
 
-            //Imgproc.erode(mask, morphedMat, erode);
-            //Imgproc.dilate(morphedMat, morphedMat, dilate);
+            Imgproc.erode(mask, morphedMat, erode);
+            Imgproc.dilate(morphedMat, morphedMat, dilate);
             finalMat = mask;
-            //Imgproc.cvtColor(finalMat, finalMat, Imgproc.COLOR_GRAY2BGR);
+            Imgproc.cvtColor(finalMat, finalMat, Imgproc.COLOR_GRAY2BGR);
 
             List<MatOfPoint> contours = new ArrayList<>();
             Mat hierarchy = new Mat();
 
-            Imgproc.findContours(mask, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
+            //Imgproc.findContours(mask, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
 //            if(hierarchy.size().height > 0 && hierarchy.size().width >0){
 //                for(int i =0; i >=0; i = (int) hierarchy.get(0,i)[0]){
 //                    Imgproc.drawContours(finalMat, contours, i, new Scalar(0,0,255));
