@@ -7,8 +7,6 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.robotcontroller.external.samples.SensorColor;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.opencv.core.Core;
@@ -23,28 +21,16 @@ import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvInternalCamera2;
 import org.openftc.easyopencv.OpenCvPipeline;
-import org.openftc.easyopencv.OpenCvWebcam;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-
-/**
- * Created by maryjaneb  on 11/13/2016.
- *
- * nerverest ticks
- * 60 1680
- * 40 1120
- * 20 560
- *
- * monitor: 640 x 480
- *YES
- */
 @Config
 @TeleOp
-public class HubVisionPipeline extends LinearOpMode {
+public class HubVisionPipelinePhone extends LinearOpMode {
 
     private final int rows = 640;
     private final int cols = 480;
@@ -54,7 +40,7 @@ public class HubVisionPipeline extends LinearOpMode {
     public static int g;
     public static int exp;
 
-    OpenCvWebcam webCam, webcam2;
+    OpenCvInternalCamera2 phoneCam;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -71,20 +57,29 @@ public class HubVisionPipeline extends LinearOpMode {
         webcam2.setPipeline(new upperCameraPipeline());//different stages
          */
         FtcDashboard dashboard = FtcDashboard.getInstance();
-
         //1 camera at the moment.
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
-        webCam.openCameraDevice();//open camera
-        webCam.setPipeline(new hubScanPipeline());
-        webCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
-        FtcDashboard.getInstance().startCameraStream(webCam, 0);
+        phoneCam = OpenCvCameraFactory.getInstance().createInternalCamera2(OpenCvInternalCamera2.CameraDirection.BACK, cameraMonitorViewId);
 
-        ExposureControl exposure = webCam.getExposureControl();
-        GainControl gain = webCam.getGainControl();
-        exposure.setMode(ExposureControl.Mode.Manual);
-        g = gain.getGain();
-        exp = (int) exposure.getExposure(TimeUnit.MILLISECONDS);
+        phoneCam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
+            @Override
+            public void onOpened() {
+                phoneCam.setPipeline(new hubScanPipeline());
+                phoneCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
+                FtcDashboard.getInstance().startCameraStream(phoneCam, 0);
+//
+//                ExposureControl exposure = phoneCam.getExposureControl();
+//                GainControl gain = webCam.getGainControl();
+//                exposure.setMode(ExposureControl.Mode.Manual);
+//                g = gain.getGain();
+//                exp = (int) exposure.getExposure(TimeUnit.MILLISECONDS);
+            }
+
+            @Override
+            public void onError(int errorCode) {
+
+            }
+        });
 
         //webcam2.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
         //width, height
@@ -93,15 +88,15 @@ public class HubVisionPipeline extends LinearOpMode {
         waitForStart();
         //all of our movement jazz
         while (opModeIsActive()) {
-            gain.setGain(g);
-            exposure.setExposure(exp, TimeUnit.MILLISECONDS);
+            //gain.setGain(g);
+            //exposure.setExposure(exp, TimeUnit.MILLISECONDS);
             TelemetryPacket cameraSettingsPacket = new TelemetryPacket();
             cameraSettingsPacket.put("Current Exposure", exp);
             cameraSettingsPacket.put("Current Gain", g);
-            cameraSettingsPacket.put("Max Gain", gain.getMaxGain());
-            cameraSettingsPacket.put("Min Gain", gain.getMinGain());
-            cameraSettingsPacket.put("Max Exposure", exposure.getMaxExposure(TimeUnit.MILLISECONDS));
-            cameraSettingsPacket.put("Min Exposure", exposure.getMinExposure(TimeUnit.MILLISECONDS));
+            //cameraSettingsPacket.put("Max Gain", phoneCam.getMaxSensorGain());
+            //cameraSettingsPacket.put("Min Gain", phoneCam.getMinSensorGain());
+            cameraSettingsPacket.put("Max Exposure", phoneCam.getMaxAutoExposureCompensation());
+            cameraSettingsPacket.put("Min Exposure", phoneCam.getMinAutoExposureCompensation());
             dashboard.sendTelemetryPacket(cameraSettingsPacket);
             sleep(100);
         }
@@ -126,8 +121,8 @@ public class HubVisionPipeline extends LinearOpMode {
             FINAL
         }
 
-        private HubVisionPipelinePhone.hubScanPipeline.Stage stageToRenderToViewport = HubVisionPipelinePhone.hubScanPipeline.Stage.RAW;
-        private HubVisionPipelinePhone.hubScanPipeline.Stage[] stages = HubVisionPipelinePhone.hubScanPipeline.Stage.values();
+        private Stage stageToRenderToViewport = Stage.RAW;
+        private Stage[] stages = Stage.values();
 
         @Override
         public void onViewportTapped()
