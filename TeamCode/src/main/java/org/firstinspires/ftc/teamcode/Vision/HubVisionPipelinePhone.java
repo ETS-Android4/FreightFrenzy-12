@@ -25,6 +25,7 @@ import org.openftc.easyopencv.OpenCvInternalCamera2;
 import org.openftc.easyopencv.OpenCvPipeline;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -35,10 +36,12 @@ public class HubVisionPipelinePhone extends LinearOpMode {
     private final int rows = 640;
     private final int cols = 480;
     public static int hueMin = 100, hueMax = 140, satMin = 120, satMax = 225, valMin = 60, valMax = 255;
-    public static int blurSize = 7, erodeSize = 15, dilateSize = 25;
+    public static int blurSize = 9, erodeSize = 15, dilateSize = 25;
     public static int extract = 1;
     public static int g;
     public static int exp;
+
+    private static Point centerPointHub;
 
     OpenCvInternalCamera2 phoneCam;
 
@@ -67,6 +70,7 @@ public class HubVisionPipelinePhone extends LinearOpMode {
                 phoneCam.setPipeline(new hubScanPipeline());
                 phoneCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
                 FtcDashboard.getInstance().startCameraStream(phoneCam, 0);
+
 //
 //                ExposureControl exposure = phoneCam.getExposureControl();
 //                GainControl gain = webCam.getGainControl();
@@ -168,19 +172,35 @@ public class HubVisionPipelinePhone extends LinearOpMode {
 
             Imgproc.erode(mask, morphedMat, erode);
             Imgproc.dilate(morphedMat, morphedMat, dilate);
-            finalMat = morphedMat;
-//            Imgproc.cvtColor(finalMat, finalMat, Imgproc.COLOR_GRAY2BGR);
-//
-//            List<MatOfPoint> contours = new ArrayList<>();
-//            Mat hierarchy = new Mat();
-//
-//            Imgproc.findContours(morphedMat, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
-//            if(hierarchy.size().height > 0 && hierarchy.size().width >0){
-//                for(int i =0; i >=0; i = (int) hierarchy.get(0,i)[0]){
-//                    Imgproc.drawContours(finalMat, contours, i, new Scalar(0,0,255));
-//                }
-//            }
-//
+
+            morphedMat.copyTo(finalMat);
+            Imgproc.cvtColor(finalMat, finalMat, Imgproc.COLOR_GRAY2BGR);
+
+            List<MatOfPoint> contours = new ArrayList<>();
+            Mat hierarchy = new Mat();
+
+            Imgproc.findContours(morphedMat, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
+            if(hierarchy.size().height > 0 && hierarchy.size().width >0){
+                contours.sort(new Comparator<MatOfPoint>() {
+                    @Override
+                    public int compare(MatOfPoint c1, MatOfPoint c2) {
+                        return (int) (Imgproc.contourArea(c1) - Imgproc.contourArea(c2));
+                    }
+                });
+                Imgproc.drawContours(finalMat, contours,contours.size()-1, new Scalar(0, 255, 0), 5);
+                //Bounding box of largest contour
+                Rect rect = Imgproc.boundingRect(contours.get(contours.size()-1));
+                //Center of bounding box
+                centerPointHub = new Point((rect.tl().x+rect.br().x)*0.5, (rect.tl().y+rect.br().y)*0.5);
+                Imgproc.circle(finalMat, centerPointHub, 5, new Scalar(0, 0, 255), 7);
+                //Draw bounding box
+                Imgproc.rectangle(finalMat, rect, new Scalar(255, 0, 0));
+
+                //Draw center of mass of largest contour
+                //Scalar centerOfMass = Core.mean(contours.get(contours.size()-1));
+                //Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
+            }
+
 
 //            double leftEdge = -1, rightEdge = -1;
 //            for(int x = 0; x < finalMat.cols(); x++){
