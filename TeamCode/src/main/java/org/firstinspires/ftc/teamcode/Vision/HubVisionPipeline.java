@@ -54,7 +54,23 @@ public class HubVisionPipeline extends LinearOpMode {
     public static int g;
     public static int exp;
 
+    public static HubVisionPipelinePhone.hubScanPipeline.Stage stageToRenderToViewport = HubVisionPipelinePhone.hubScanPipeline.Stage.RAW;
+    public static HubVisionPipelinePhone.hubScanPipeline.Stage[] stages = HubVisionPipelinePhone.hubScanPipeline.Stage.values();
+
+    public static int currentStageNum = stageToRenderToViewport.ordinal();
+
+    public static int nextStageNum = currentStageNum + 1;
+
     OpenCvWebcam webCam, webcam2;
+
+    public static enum Stage
+    {
+        RAW,
+        BLUR,
+        HSVTHRESH,
+        MORPH,
+        FINAL
+    }
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -117,18 +133,6 @@ public class HubVisionPipeline extends LinearOpMode {
         Mat morphedMat = new Mat();
         Mat finalMat = new Mat();
 
-        enum Stage
-        {
-            RAW,
-            BLUR,
-            HSVTHRESH,
-            MORPH,
-            FINAL
-        }
-
-        private HubVisionPipelinePhone.hubScanPipeline.Stage stageToRenderToViewport = HubVisionPipelinePhone.hubScanPipeline.Stage.RAW;
-        private HubVisionPipelinePhone.hubScanPipeline.Stage[] stages = HubVisionPipelinePhone.hubScanPipeline.Stage.values();
-
         @Override
         public void onViewportTapped()
         {
@@ -136,10 +140,6 @@ public class HubVisionPipeline extends LinearOpMode {
              * Note that this method is invoked from the UI thread
              * so whatever we do here, we must do quickly.
              */
-
-            int currentStageNum = stageToRenderToViewport.ordinal();
-
-            int nextStageNum = currentStageNum + 1;
 
             if(nextStageNum >= stages.length)
             {
