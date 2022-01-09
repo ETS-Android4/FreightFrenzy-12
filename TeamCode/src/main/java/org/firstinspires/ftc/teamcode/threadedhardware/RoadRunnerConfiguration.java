@@ -23,6 +23,9 @@ import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
+import com.acmerobotics.roadrunner.trajectory.constraints.AngularVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.MinVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.ProfileAccelerationConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
 import com.acmerobotics.roadrunner.util.NanoClock;
@@ -35,9 +38,10 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 
-import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import com.acmerobotics.roadrunner.trajectory.constraints.MecanumVelocityConstraint;
 
+import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.trajectorysequence.TrajectorySequenceBuilder;
 import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.trajectorysequence.TrajectorySequenceRunner;
 import org.firstinspires.ftc.teamcode.util.AxesSigns;
@@ -48,17 +52,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants.MAX_ACCEL;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants.MAX_ANG_ACCEL;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants.MAX_ANG_VEL;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants.MAX_VEL;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants.MOTOR_VELO_PID;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants.RUN_USING_ENCODER;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants.TRACK_WIDTH;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants.encoderTicksToInches;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.SampleMecanumDrive.axes;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.SampleMecanumDrive.getAccelerationConstraint;
-import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.SampleMecanumDrive.getVelocityConstraint;
+import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.GasDriveConstants.*;
 
 @Config
 public class RoadRunnerConfiguration extends MecanumDrive implements Configuration {
@@ -67,6 +61,13 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
     public static PIDCoefficients HEADING_PID = new PIDCoefficients(5, 0, 0);
 
     public static double LATERAL_MULTIPLIER = 1.04;
+
+    public static double VX_WEIGHT = 1;
+    public static double VY_WEIGHT = 1;
+    public static double OMEGA_WEIGHT = 1;
+
+    public static AxesOrder axes = AxesOrder.YZX;
+
     public static double inchMult = 86, offset = 0.135;
 
     private TrajectorySequenceRunner trajectorySequenceRunner;
@@ -93,6 +94,8 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
     public ThreadedMotor backLeft, frontLeft, frontRight, backRight, spinner, slides, ingest, preIngest;
     private List<ThreadedMotor> motors;
 
+    public ThreadedAnalogSensor left, right, front;
+
     public ThreadedServo dropper, flipdown;
 
     public ThreadedDigitalSensor limit;
@@ -104,17 +107,10 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
 
     //Separated constructor and "Configure" method.
     public RoadRunnerConfiguration(HardwareMap hardwareMap) {
-        super(DriveConstants.kV, DriveConstants.kA, DriveConstants.kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
+        super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
 
         dashboard = FtcDashboard.getInstance();
         dashboard.setTelemetryTransmissionInterval(25);
-
-        clock = NanoClock.system();
-
-        mode = Mode.IDLE;
-
-        turnController = new PIDFController(HEADING_PID);
-        turnController.setInputBounds(0, 2 * Math.PI);
 
         follower = new HolonomicPIDVAFollower(TRANSLATIONAL_PID, TRANSLATIONAL_PID, HEADING_PID,
                 new Pose2d(0.5, 0.5, Math.toRadians(5.0)), 0.5);
@@ -128,12 +124,20 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
 
         hardware.clear();
 
+        ThreadedAnalogSensor.InterpretVoltage distance = ((double voltage, double max) -> 87.4 * (voltage - 0.138));
+
         frontLeft = new ThreadedMotor(hwMap, "front_left_motor");
         backLeft = new ThreadedMotor(hwMap, "back_left_motor");
         backRight = new ThreadedMotor(hwMap, "back_right_motor");
         frontRight = new ThreadedMotor(hwMap, "front_right_motor");
         imu = new ThreadedIMU(hwMap);
         motors = Arrays.asList(frontLeft, backLeft, backRight, frontRight);
+
+        left = new ThreadedAnalogSensor(hwMap, "left", distance);
+        right = new ThreadedAnalogSensor(hwMap, "right", distance);
+        front = new ThreadedAnalogSensor(hwMap, "front", distance);
+
+        setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // TODO: if your hub is mounted vertically, remap the IMU axes so that the z-axis points
         // upward (normal to the floor) using a command like the following:
@@ -214,8 +218,11 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
     }
 
     public void followTrajectoryAsync(Trajectory trajectory) {
-        follower.followTrajectory(trajectory);
-        mode = Mode.FOLLOW_TRAJECTORY;
+        trajectorySequenceRunner.followTrajectorySequenceAsync(
+                trajectorySequenceBuilder(trajectory.start())
+                        .addTrajectory(trajectory)
+                        .build()
+        );
     }
 
     public void followTrajectory(Trajectory trajectory) {
@@ -223,16 +230,17 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         waitForIdle();
     }
 
+    public void followTrajectorySequenceAsync(TrajectorySequence trajectorySequence) {
+        trajectorySequenceRunner.followTrajectorySequenceAsync(trajectorySequence);
+    }
+
+    public void followTrajectorySequence(TrajectorySequence trajectorySequence) {
+        followTrajectorySequenceAsync(trajectorySequence);
+        waitForIdle();
+    }
+
     public Pose2d getLastError() {
-        switch (mode) {
-            case FOLLOW_TRAJECTORY:
-                return follower.getLastError();
-            case TURN:
-                return new Pose2d(0, 0, turnController.getLastError());
-            case IDLE:
-                return new Pose2d();
-        }
-        throw new AssertionError();
+        return trajectorySequenceRunner.getLastPoseError();
     }
 
     public void update() {
@@ -248,7 +256,7 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
     }
 
     public boolean isBusy() {
-        return mode != Mode.IDLE;
+        return trajectorySequenceRunner.isBusy();
     }
 
     //Need to fix these at some point
@@ -264,10 +272,30 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         }
     }
 
-    public void setPIDFCoefficients(PIDFCoefficients coefficients) { //Removed DcMotor.RunMode runMode
+    public void setPIDFCoefficients(PIDFCoefficients coefficients) {
         for (ThreadedMotor motor : motors) {
             motor.setPID(coefficients);
         }
+    }
+
+    public void setWeightedDrivePower(Pose2d drivePower) {
+        Pose2d vel = drivePower;
+
+        if (Math.abs(drivePower.getX()) + Math.abs(drivePower.getY())
+                + Math.abs(drivePower.getHeading()) > 1) {
+            // re-normalize the powers according to the weights
+            double denom = VX_WEIGHT * Math.abs(drivePower.getX())
+                    + VY_WEIGHT * Math.abs(drivePower.getY())
+                    + OMEGA_WEIGHT * Math.abs(drivePower.getHeading());
+
+            vel = new Pose2d(
+                    VX_WEIGHT * drivePower.getX(),
+                    VY_WEIGHT * drivePower.getY(),
+                    OMEGA_WEIGHT * drivePower.getHeading()
+            ).div(denom);
+        }
+
+        setDrivePower(vel);
     }
 
     @NonNull
@@ -300,5 +328,44 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
     @Override
     public double getRawExternalHeading() {
         return imu.get()[0];
+    }
+
+    @Override
+    public Double getExternalHeadingVelocity() {
+        // TODO: This must be changed to match your configuration
+        //                           | Z axis
+        //                           |
+        //     (Motor Port Side)     |   / X axis
+        //                       ____|__/____
+        //          Y axis     / *   | /    /|   (IO Side)
+        //          _________ /______|/    //      I2C
+        //                   /___________ //     Digital
+        //                  |____________|/      Analog
+        //
+        //                 (Servo Port Side)
+        //
+        // The positive x axis points toward the USB port(s)
+        //
+        // Adjust the axis rotation rate as necessary
+        // Rotate about the z axis is the default assuming your REV Hub/Control Hub is laying
+        // flat on a surface
+
+        // To work around an SDK bug, use -zRotationRate in place of xRotationRate
+        // and -xRotationRate in place of zRotationRate (yRotationRate behaves as
+        // expected). This bug does NOT affect orientation.
+        //
+        // See https://github.com/FIRST-Tech-Challenge/FtcRobotController/issues/251 for details.
+        return (double) -imu.getAngularVelocity().zRotationRate;
+    }
+
+    public static TrajectoryVelocityConstraint getVelocityConstraint(double maxVel, double maxAngularVel, double trackWidth) {
+        return new MinVelocityConstraint(Arrays.asList(
+                new AngularVelocityConstraint(maxAngularVel),
+                new MecanumVelocityConstraint(maxVel, trackWidth)
+        ));
+    }
+
+    public static TrajectoryAccelerationConstraint getAccelerationConstraint(double maxAccel) {
+        return new ProfileAccelerationConstraint(maxAccel);
     }
 }

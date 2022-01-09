@@ -14,14 +14,14 @@ import org.firstinspires.ftc.teamcode.threadedhardware.SampleConfiguration;
 import org.firstinspires.ftc.teamcode.threadedhardware.Sequence;
 
 @Config
-@TeleOp(name="ScrimTeleOp")
+@TeleOp(name="RRTeleOp")
 public class RRTeleOp extends LinearOpMode {
 
     RoadRunnerConfiguration config;
 
     boolean turning = false;
 
-    public static double OPEN = 0.02, CLOSE = 0.69, FLIPDOWN = 1, x = 0, y = -10; //0.23 dropper position to for auto lowest level
+    public static double OPEN = 0.02, CLOSE = 0.69, FLIPDOWN = 1, x = 20, y = 60; //0.23 dropper position to for auto lowest level
 
     public static int[] levels = {0, 660, 1800, 2500};
 
@@ -29,7 +29,7 @@ public class RRTeleOp extends LinearOpMode {
 
     public boolean levelPressed = false;
 
-    public double slidesOffset = 0;
+    public double slidesOffset = 0, imuHeading = 0;
 
     Thread waitThread, dumpThread, testThread;
 
@@ -48,11 +48,18 @@ public class RRTeleOp extends LinearOpMode {
 
         sleep(1000);
 
-        config.slides.setPower(-0.5);
-        while(!isStopRequested() && config.limit.get()[0] == 0) {}
-        config.slides.setPower(0);
+        //config.slides.setPower(-0.5);
+        //while(!isStopRequested() && config.limit.get()[0] == 0) {}
+        //config.slides.setPower(0);
 
-        slidesOffset = config.slides.get()[1];
+        //slidesOffset = config.slides.get()[1];
+
+        while(!isStarted() && !isStopRequested()) {
+            telemetry.addData("Left: ", config.left.get()[1]);
+            telemetry.addData("Right: ", config.right.get()[0]);
+            telemetry.addData("Front: ", config.front.get()[0]);
+            telemetry.update();
+        }
 
         waitForStart();
 
@@ -71,13 +78,16 @@ public class RRTeleOp extends LinearOpMode {
         dumpThread = new Thread(dump);
 
         Sequence forward = new Sequence(() -> {
+            config.setPoseEstimate(new Pose2d(0, 0));
+            config.turn(-imuHeading);
+            double wallX = config.left.get()[0];
             Trajectory traj = config.trajectoryBuilder(config.getPoseEstimate())
-                    .forward(20)
+                    .strafeLeft(wallX - 1)
                     .build();
             config.followTrajectory(traj);
 
-            Trajectory traj2 = config.trajectoryBuilder(new Pose2d(0, 0))
-                    .strafeTo(new Vector2d(x, y))
+            Trajectory traj2 = config.trajectoryBuilder(config.getPoseEstimate())
+                    .forward(y)
                     .build();
             config.followTrajectory(traj2);
         });
@@ -87,9 +97,9 @@ public class RRTeleOp extends LinearOpMode {
 
             hardware.waitForCycle();
 
-            config.ingest.setPower(ingesterSpeed);
-            config.spinner.setPower(gamepad2.left_stick_y);
-            config.preIngest.setPower(ingesterSpeed * 0.6);
+            //config.ingest.setPower(ingesterSpeed);
+            //config.spinner.setPower(gamepad2.left_stick_y);
+            //config.preIngest.setPower(ingesterSpeed * 0.6);
 
             if(gamepad1.back) config.flipdown.set(FLIPDOWN);
 
@@ -97,7 +107,7 @@ public class RRTeleOp extends LinearOpMode {
             else if(gamepad1.y || gamepad2.y) ingesterSpeed = -1;
             else if(gamepad1.back || gamepad2.back) ingesterSpeed = 0;
 
-            double imuHeading = config.imu.get()[0];
+            imuHeading = config.imu.get()[0];
             double tempHeading = imuHeading;
             double tempTarget = lastHeading;
             if(tempHeading < 0) tempHeading += 2 * Math.PI;
@@ -108,6 +118,7 @@ public class RRTeleOp extends LinearOpMode {
             invert = invert < 0 ? 1 : -1;
             double power = invert * 0.8 * (Math.abs(tempHeading - tempTarget) > Math.PI ? (Math.abs(tempHeading > Math.PI ? 2 * Math.PI - tempHeading : tempHeading) + Math.abs(tempTarget > Math.PI ? 2 * Math.PI - tempTarget : tempTarget)) : Math.abs(tempHeading - tempTarget)); //Long line, but the gist is if you're calculating speed in the wrong direction, git gud.
             if(Math.abs(power) < 0.05) power *= 0.5;
+            power = 0;
             if(Math.abs(gamepad1.right_stick_x) > 0.1) turning = true;
 
             else if(turning && !waitThread.isAlive()) waitThread.start();
@@ -123,14 +134,14 @@ public class RRTeleOp extends LinearOpMode {
             }
             else if(!gamepad1.dpad_down && !gamepad1.dpad_up && !gamepad2.dpad_down && !gamepad2.dpad_up) levelPressed = false;
 
-            double tempPos = config.slides.get()[1] - slidesOffset;
+            //double tempPos = config.slides.get()[1] - slidesOffset;
 
-            double pow = tempPos > levels[currentLevel] ? -1 : 1;
+            //double pow = tempPos > levels[currentLevel] ? -1 : 1;
 
-            if(Math.abs(tempPos - levels[currentLevel]) < 150 || (pow == -1 && config.limit.get()[0] == 1)) pow = 0;
+            //if(Math.abs(tempPos - levels[currentLevel]) < 150 || (pow == -1 && config.limit.get()[0] == 1)) pow = 0;
             //if(Math.abs(tempPos - levels[currentLevel]) < 150) pow = 0.001;
 
-            config.slides.setPower((!gamepad2.left_bumper ? pow : (config.limit.get()[0] != 1 || gamepad2.right_stick_y > 0) ? gamepad2.right_stick_y : 0));
+            //config.slides.setPower((!gamepad2.left_bumper ? pow : (config.limit.get()[0] != 1 || gamepad2.right_stick_y > 0) ? gamepad2.right_stick_y : 0));
             //double pow1 = Math.abs(gamepad2.right_stick_y) < 0.3 ? 0 : gamepad2.right_stick_y;
             //if((tempPos <= 0 && pow1 < 0) || config.limit.get()[0] == 1) pow1 = 0;
 
@@ -153,15 +164,11 @@ public class RRTeleOp extends LinearOpMode {
 
             if(!testThread.isAlive()) setPower(speed * x, -speed * y, speed * a + power);
 
-            if(gamepad1.dpad_left) {
-
-            }
-
             telemetry.addData("Heading: ", imuHeading);
-            telemetry.addData("Power: ", power);
-            telemetry.addData("Last Heading: ", lastHeading);
-            telemetry.addData("Level: ", currentLevel);
-            telemetry.addData("Slide Height: ", tempPos);
+            telemetry.addData("Power: ", config.backLeft.get()[0]);
+            //telemetry.addData("Last Heading: ", lastHeading);
+            //telemetry.addData("Level: ", currentLevel);
+            //telemetry.addData("Slide Height: ", tempPos);
             //telemetry.addData("Drivetrain Current Draw: ");
             //telemetry.addData("Limit: ", config.limit.get()[0]);
            // telemetry.addData("Expected Height: ", levels[currentLevel]);

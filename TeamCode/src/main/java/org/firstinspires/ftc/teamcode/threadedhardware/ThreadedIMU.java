@@ -166,7 +166,7 @@ public class ThreadedIMU implements Sensor, BNO055IMU {
     @Deprecated
     @Override
     public AngularVelocity getAngularVelocity() {
-        return null;
+        return imu.getAngularVelocity();
     }
 
     //Currently only using heading.
