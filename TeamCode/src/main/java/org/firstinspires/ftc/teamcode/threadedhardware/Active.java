@@ -6,4 +6,5 @@ public interface Active extends ThreadedHardware {
     void setHardware();
 
     double getRunVal();
+    void updateMode();
 }

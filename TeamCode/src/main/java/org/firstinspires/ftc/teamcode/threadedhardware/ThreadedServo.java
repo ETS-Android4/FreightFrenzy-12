@@ -45,6 +45,8 @@ public class ThreadedServo implements Active {
         servo.setPosition(runVal);
     }
 
+    public void updateMode() {} //As of now, no reason for this in servo.
+
     @Override
     public double getRunVal() {
         return runVal;

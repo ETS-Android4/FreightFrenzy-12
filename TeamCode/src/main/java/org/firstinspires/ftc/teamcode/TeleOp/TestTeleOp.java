@@ -110,13 +110,12 @@ public class TestTeleOp extends LinearOpMode {
             double pow = tempPos > levels[currentLevel] ? -1 : 1;
 
             if(Math.abs(tempPos - levels[currentLevel]) < 150 || (pow == -1 && config.limit.get()[0] == 1)) pow = 0;
-            //if(Math.abs(tempPos - levels[currentLevel]) < 150) pow = 0.001;
 
             config.slides.setPower((!gamepad2.left_bumper ? pow : (config.limit.get()[0] != 1 || gamepad2.right_stick_y > 0) ? gamepad2.right_stick_y : 0));
-            //double pow1 = Math.abs(gamepad2.right_stick_y) < 0.3 ? 0 : gamepad2.right_stick_y;
-            //if((tempPos <= 0 && pow1 < 0) || config.limit.get()[0] == 1) pow1 = 0;
+            double pow1 = Math.abs(gamepad2.right_stick_y) < 0.3 ? 0 : gamepad2.right_stick_y;
+            if((tempPos <= 0 && pow1 < 0) || config.limit.get()[0] == 1) pow1 = 0;
 
-            //config.slides.setPower(pow);
+            config.slides.setPower(pow1 == 0 ? pow : pow1);
 
             if(turning || gamepad1.left_trigger > 0.3 || gamepad1.right_trigger > 0.3) {
                 lastHeading = imuHeading;

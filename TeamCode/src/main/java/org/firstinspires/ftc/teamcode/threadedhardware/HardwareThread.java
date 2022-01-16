@@ -62,6 +62,7 @@ public class HardwareThread extends Thread implements Hardware {
             double val;
             if(d instanceof Active && (val = ((Active) d).getRunVal()) != lastRun[i]) {
                 ((Active) d).setHardware();
+                ((Active) d).updateMode();
                 lastRun[i] = val;
             }
             //instanceof and typecasting allows for sensors to not include setHardware, as there's nothing to be set on the sensor.

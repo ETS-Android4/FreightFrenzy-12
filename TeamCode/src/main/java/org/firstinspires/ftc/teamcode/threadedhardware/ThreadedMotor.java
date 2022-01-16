@@ -13,6 +13,11 @@ public class ThreadedMotor implements Active, DcMotor {
     private int partNum;
     private volatile boolean powerMode = false;
 
+    RunMode mode = RunMode.RUN_WITHOUT_ENCODER; //Default mode
+    ZeroPowerBehavior zpb = ZeroPowerBehavior.BRAKE; //Default ZPB
+    int position = 0;
+    boolean change = false;
+
     private ActionThread thread = new NullThread();
 
     //Array holding all the hardware inputs.
@@ -46,7 +51,8 @@ public class ThreadedMotor implements Active, DcMotor {
     }
 
     public void setHardware() {
-        if(powerMode) motor.setPower(runVal);
+        if(mode == RunMode.RUN_TO_POSITION);
+        else if(powerMode) motor.setPower(runVal);
         else motor.setVelocity(runVal);
     }
 
@@ -55,7 +61,7 @@ public class ThreadedMotor implements Active, DcMotor {
     }
 
     public void getHardware() {
-        hardwareVals = new double[]{motor.getVelocity(), (double) motor.getCurrentPosition()};
+        hardwareVals = new double[]{powerMode ? motor.getPower() : motor.getVelocity(), (double) motor.getCurrentPosition()};
         updateHardware = !updateHardware;
     }
 
@@ -80,14 +86,23 @@ public class ThreadedMotor implements Active, DcMotor {
         set(power);
     }
 
-    @Override
-    public double getPower() {
-        return 0;
+    public void updateMode() {
+        if(change) {
+            motor.setMode(mode);
+            motor.setZeroPowerBehavior(zpb);
+            if(mode == RunMode.RUN_TO_POSITION) motor.setTargetPosition(position);
+            change = false;
+        }
     }
 
-    //RUN_TO_POSITION not supported, use setTargetPosition instead.
+    @Deprecated
+    @Override
+    public double getPower() {
+        return powerMode ? hardwareVals[0] : 0;
+    }
+
     public void setMode(RunMode mode){
-        if(mode != RunMode.RUN_TO_POSITION) motor.setMode(mode);
+        this.mode = mode;
     }
 
     public void setPowerMode(boolean power) {
@@ -120,7 +135,7 @@ public class ThreadedMotor implements Active, DcMotor {
     }
 
     public void setZeroPowerBehavior(ZeroPowerBehavior behavior){
-        motor.setZeroPowerBehavior(behavior);
+        zpb = behavior;
     }
 
     @Override
@@ -140,17 +155,15 @@ public class ThreadedMotor implements Active, DcMotor {
         return false;
     }
 
-    @Deprecated
     @Override
     public void setTargetPosition(int position) {
-        //Leaving this deprecated, use setPosition instead.
-        //Do not call this method.
+        this.position = position;
     }
 
     @Deprecated
     @Override
     public int getTargetPosition() {
-        return -1;
+        return position;
     }
 
     //isBusy checks for alive threads and non-zero velocity, THIS IS NOT THE SAME AS NORMAL ISBUSY. Not currently in use because the thread is not used.
