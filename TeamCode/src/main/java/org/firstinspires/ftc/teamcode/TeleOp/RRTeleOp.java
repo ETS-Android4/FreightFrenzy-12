@@ -40,7 +40,7 @@ public class RRTeleOp extends LinearOpMode {
 
     boolean turning = false;
 
-    public static double p = 0.001;
+    public static double p = 0.00001;
 
     public static double OPEN = 0.02, CLOSE = 0.69, FLIPDOWN = 1, x = 20, y = 60; //0.23 dropper position to for auto lowest level
 
@@ -69,8 +69,7 @@ public class RRTeleOp extends LinearOpMode {
 
         //1 camera at the moment.
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        webCam = OpenCvCameraFactory
-                .getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+        webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
         webCam.openCameraDevice();//open camera
         webCam.setPipeline(new HubVisionPipeline.hubScanPipeline());
         webCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
@@ -101,6 +100,18 @@ public class RRTeleOp extends LinearOpMode {
             telemetry.addData("Right: ", config.right.get()[0]);
             telemetry.addData("Front: ", config.front.get()[0]);
             telemetry.update();
+
+            gain.setGain(g);
+            exposure.setExposure(exp, TimeUnit.MILLISECONDS);
+            TelemetryPacket cameraSettingsPacket = new TelemetryPacket();
+            cameraSettingsPacket.put("Current Exposure", exp);
+            cameraSettingsPacket.put("Current Gain", g);
+            cameraSettingsPacket.put("Max Gain", gain.getMaxGain());
+            cameraSettingsPacket.put("Min Gain", gain.getMinGain());
+            cameraSettingsPacket.put("Max Exposure", exposure.getMaxExposure(TimeUnit.MILLISECONDS));
+            cameraSettingsPacket.put("Min Exposure", exposure.getMinExposure(TimeUnit.MILLISECONDS));
+            dashboard.sendTelemetryPacket(cameraSettingsPacket);
+            sleep(100);
         }
 
         waitForStart();
@@ -216,7 +227,7 @@ public class RRTeleOp extends LinearOpMode {
 
             if(gamepad1.dpad_left && !testThread.isAlive()) testThread.start();
 
-            if(!testThread.isAlive()) setPower(speed * x, -speed * y, speed * a + power);
+            if(!testThread.isAlive() && !hubThread.isAlive()) setPower(speed * x, -speed * y, speed * a + power);
 
             telemetry.addData("Heading: ", imuHeading);
             telemetry.addData("Power: ", config.backLeft.get()[0]);
