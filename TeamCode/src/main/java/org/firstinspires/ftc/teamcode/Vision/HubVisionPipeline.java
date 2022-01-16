@@ -47,21 +47,21 @@ import java.util.concurrent.TimeUnit;
 @TeleOp
 public class HubVisionPipeline extends LinearOpMode {
 
-    private final int rows = 640;
-    private final int cols = 480;
-    public static int hueMin = 110, hueMax = 130, satMin = 120, satMax = 225, valMin = 60, valMax = 255;
+    public final int rows = 640;
+    public final int cols = 480;
+    public static int hueMin = 115, hueMax = 125, satMin = 130, satMax = 210, valMin = 100, valMax = 150;
     public static int blurSize = 11, erodeSize = 15, dilateSize = 25;
     public static int extract = 1;
     public static int g;
     public static int exp;
 
-    public static HubVisionPipelinePhone.hubScanPipeline.Stage stageToRenderToViewport = HubVisionPipelinePhone.hubScanPipeline.Stage.RAW;
-    public static HubVisionPipelinePhone.hubScanPipeline.Stage[] stages = HubVisionPipelinePhone.hubScanPipeline.Stage.values();
+    public static Stage stageToRenderToViewport = Stage.RAW;
+    public static Stage[] stages = Stage.values();
 
     public static int currentStageNum = stageToRenderToViewport.ordinal();
     public static int nextStageNum = currentStageNum + 1;
 
-    private static Point centerPointHub;
+    public static Point centerPointHub;
     
     OpenCvWebcam webCam, webcam2;
 
@@ -103,6 +103,8 @@ public class HubVisionPipeline extends LinearOpMode {
         exposure.setMode(ExposureControl.Mode.Manual);
         g = gain.getGain();
         exp = (int) exposure.getExposure(TimeUnit.MILLISECONDS);
+        exp = 14;
+        g = 0;
 
         //webcam2.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
         //width, height
@@ -143,9 +145,6 @@ public class HubVisionPipeline extends LinearOpMode {
             MORPH,
             FINAL
         }
-
-        private HubVisionPipelinePhone.hubScanPipeline.Stage stageToRenderToViewport = HubVisionPipelinePhone.hubScanPipeline.Stage.RAW;
-        private HubVisionPipelinePhone.hubScanPipeline.Stage[] stages = HubVisionPipelinePhone.hubScanPipeline.Stage.values();
 
         @Override
         public void onViewportTapped()
