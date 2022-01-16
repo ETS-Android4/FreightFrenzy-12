@@ -83,6 +83,9 @@ public class RRTeleOp extends LinearOpMode {
         exp = 14;
         g = 0;
 
+        gain.setGain(g);
+        exposure.setExposure(exp, TimeUnit.MILLISECONDS);
+
         double lastHeading = 0, ingesterSpeed = 0;
 
         config.imu.gettingInput = true;
@@ -100,18 +103,6 @@ public class RRTeleOp extends LinearOpMode {
             telemetry.addData("Right: ", config.right.get()[0]);
             telemetry.addData("Front: ", config.front.get()[0]);
             telemetry.update();
-
-            gain.setGain(g);
-            exposure.setExposure(exp, TimeUnit.MILLISECONDS);
-            TelemetryPacket cameraSettingsPacket = new TelemetryPacket();
-            cameraSettingsPacket.put("Current Exposure", exp);
-            cameraSettingsPacket.put("Current Gain", g);
-            cameraSettingsPacket.put("Max Gain", gain.getMaxGain());
-            cameraSettingsPacket.put("Min Gain", gain.getMinGain());
-            cameraSettingsPacket.put("Max Exposure", exposure.getMaxExposure(TimeUnit.MILLISECONDS));
-            cameraSettingsPacket.put("Min Exposure", exposure.getMinExposure(TimeUnit.MILLISECONDS));
-            dashboard.sendTelemetryPacket(cameraSettingsPacket);
-            sleep(100);
         }
 
         waitForStart();
@@ -238,17 +229,6 @@ public class RRTeleOp extends LinearOpMode {
             //telemetry.addData("Limit: ", config.limit.get()[0]);
            // telemetry.addData("Expected Height: ", levels[currentLevel]);
             telemetry.update();
-
-            gain.setGain(g);
-            exposure.setExposure(exp, TimeUnit.MILLISECONDS);
-            TelemetryPacket cameraSettingsPacket = new TelemetryPacket();
-            cameraSettingsPacket.put("Current Exposure", exp);
-            cameraSettingsPacket.put("Current Gain", g);
-            cameraSettingsPacket.put("Max Gain", gain.getMaxGain());
-            cameraSettingsPacket.put("Min Gain", gain.getMinGain());
-            cameraSettingsPacket.put("Max Exposure", exposure.getMaxExposure(TimeUnit.MILLISECONDS));
-            cameraSettingsPacket.put("Min Exposure", exposure.getMinExposure(TimeUnit.MILLISECONDS));
-            dashboard.sendTelemetryPacket(cameraSettingsPacket);
         }
 
         hardware.Stop();
