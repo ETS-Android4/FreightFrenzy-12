@@ -27,6 +27,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
 import org.openftc.easyopencv.OpenCvWebcam;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -58,9 +59,10 @@ public class HubVisionPipeline extends LinearOpMode {
     public static HubVisionPipelinePhone.hubScanPipeline.Stage[] stages = HubVisionPipelinePhone.hubScanPipeline.Stage.values();
 
     public static int currentStageNum = stageToRenderToViewport.ordinal();
-
     public static int nextStageNum = currentStageNum + 1;
 
+    private static Point centerPointHub;
+    
     OpenCvWebcam webCam, webcam2;
 
     public static enum Stage
@@ -133,6 +135,18 @@ public class HubVisionPipeline extends LinearOpMode {
         Mat morphedMat = new Mat();
         Mat finalMat = new Mat();
 
+        enum Stage
+        {
+            RAW,
+            BLUR,
+            HSVTHRESH,
+            MORPH,
+            FINAL
+        }
+
+        private HubVisionPipelinePhone.hubScanPipeline.Stage stageToRenderToViewport = HubVisionPipelinePhone.hubScanPipeline.Stage.RAW;
+        private HubVisionPipelinePhone.hubScanPipeline.Stage[] stages = HubVisionPipelinePhone.hubScanPipeline.Stage.values();
+
         @Override
         public void onViewportTapped()
         {
@@ -140,6 +154,10 @@ public class HubVisionPipeline extends LinearOpMode {
              * Note that this method is invoked from the UI thread
              * so whatever we do here, we must do quickly.
              */
+
+            int currentStageNum = stageToRenderToViewport.ordinal();
+
+            int nextStageNum = currentStageNum + 1;
 
             if(nextStageNum >= stages.length)
             {
@@ -171,21 +189,37 @@ public class HubVisionPipeline extends LinearOpMode {
             Mat erode = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(erodeSize, erodeSize));
             Mat dilate = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(dilateSize, dilateSize));
 
-            //Imgproc.erode(mask, morphedMat, erode);
-            //Imgproc.dilate(morphedMat, morphedMat, dilate);
-            finalMat = mask;
-            //Imgproc.cvtColor(finalMat, finalMat, Imgproc.COLOR_GRAY2BGR);
+            Imgproc.erode(mask, morphedMat, erode);
+            Imgproc.dilate(morphedMat, morphedMat, dilate);
+
+            morphedMat.copyTo(finalMat);
+            Imgproc.cvtColor(finalMat, finalMat, Imgproc.COLOR_GRAY2BGR);
 
             List<MatOfPoint> contours = new ArrayList<>();
             Mat hierarchy = new Mat();
 
-            Imgproc.findContours(mask, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
-//            if(hierarchy.size().height > 0 && hierarchy.size().width >0){
-//                for(int i =0; i >=0; i = (int) hierarchy.get(0,i)[0]){
-//                    Imgproc.drawContours(finalMat, contours, i, new Scalar(0,0,255));
-//                }
-//            }
-//
+            Imgproc.findContours(morphedMat, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
+            if(hierarchy.size().height > 0 && hierarchy.size().width >0){
+                contours.sort(new Comparator<MatOfPoint>() {
+                    @Override
+                    public int compare(MatOfPoint c1, MatOfPoint c2) {
+                        return (int) (Imgproc.contourArea(c1) - Imgproc.contourArea(c2));
+                    }
+                });
+                Imgproc.drawContours(finalMat, contours,contours.size()-1, new Scalar(0, 255, 0), 5);
+                //Bounding box of largest contour
+                Rect rect = Imgproc.boundingRect(contours.get(contours.size()-1));
+                //Center of bounding box
+                centerPointHub = new Point((rect.tl().x+rect.br().x)*0.5, (rect.tl().y+rect.br().y)*0.5);
+                Imgproc.circle(finalMat, centerPointHub, 5, new Scalar(0, 0, 255), 7);
+                //Draw bounding box
+                Imgproc.rectangle(finalMat, rect, new Scalar(255, 0, 0));
+
+                //Draw center of mass of largest contour
+                //Scalar centerOfMass = Core.mean(contours.get(contours.size()-1));
+                //Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
+            }
+
 
 //            double leftEdge = -1, rightEdge = -1;
 //            for(int x = 0; x < finalMat.cols(); x++){
