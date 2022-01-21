@@ -61,7 +61,7 @@ public class HubVisionPipeline extends LinearOpMode {
     public static int currentStageNum = stageToRenderToViewport.ordinal();
     public static int nextStageNum = currentStageNum + 1;
 
-    public static Point centerPointHub;
+    private static Point centerPointHub = new Point(320, 240);
     
     OpenCvWebcam webCam, webcam2;
 
@@ -72,6 +72,10 @@ public class HubVisionPipeline extends LinearOpMode {
         HSVTHRESH,
         MORPH,
         FINAL
+    }
+
+    public static Point getCenterPointHub() {
+        return centerPointHub;
     }
 
     @Override
@@ -218,6 +222,7 @@ public class HubVisionPipeline extends LinearOpMode {
                 //Scalar centerOfMass = Core.mean(contours.get(contours.size()-1));
                 //Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
             }
+            else centerPointHub = new Point(320, 240);
 
 
 //            double leftEdge = -1, rightEdge = -1;

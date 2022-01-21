@@ -40,7 +40,7 @@ public class RRTeleOp extends LinearOpMode {
 
     boolean turning = false;
 
-    public static double p = 0.00001;
+    public static double p = 0.001;
 
     public static double OPEN = 0.02, CLOSE = 0.69, FLIPDOWN = 1, x = 20, y = 60; //0.23 dropper position to for auto lowest level
 
@@ -141,7 +141,8 @@ public class RRTeleOp extends LinearOpMode {
             double power = 1;
             while(Math.abs(power) > 0.05) {
                 HardwareThread.waitForCycle();
-                power = p * (HubVisionPipeline.centerPointHub.x - 320);
+                System.out.println("This piece of shit has a power of " + power + " and an x of " + HubVisionPipeline.getCenterPointHub().x);
+                power = p * (HubVisionPipeline.getCenterPointHub().x - 320);
                 setPower(0, 0, power);
             }
         });
