@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.Vision;
 
+import static org.firstinspires.ftc.teamcode.TeleOp.RRTeleOp.targetX;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
@@ -11,6 +13,7 @@ import org.firstinspires.ftc.robotcontroller.external.samples.SensorColor;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
+import org.firstinspires.ftc.teamcode.TeleOp.RRTeleOp;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
@@ -49,11 +52,13 @@ public class HubVisionPipeline extends LinearOpMode {
 
     public final int rows = 640;
     public final int cols = 480;
-    public static int hueMin = 115, hueMax = 125, satMin = 130, satMax = 210, valMin = 100, valMax = 150;
+    public static int hueMin = 115, hueMax = 125, satMin = 60, satMax = 255, valMin = 60, valMax = 150;
     public static int blurSize = 11, erodeSize = 15, dilateSize = 25;
     public static int extract = 1;
     public static int g;
     public static int exp;
+
+    public static double width = 0;
 
     public static Stage stageToRenderToViewport = Stage.RAW;
     public static Stage[] stages = Stage.values();
@@ -141,15 +146,6 @@ public class HubVisionPipeline extends LinearOpMode {
         Mat morphedMat = new Mat();
         Mat finalMat = new Mat();
 
-        enum Stage
-        {
-            RAW,
-            BLUR,
-            HSVTHRESH,
-            MORPH,
-            FINAL
-        }
-
         @Override
         public void onViewportTapped()
         {
@@ -212,6 +208,7 @@ public class HubVisionPipeline extends LinearOpMode {
                 Imgproc.drawContours(finalMat, contours,contours.size()-1, new Scalar(0, 255, 0), 5);
                 //Bounding box of largest contour
                 Rect rect = Imgproc.boundingRect(contours.get(contours.size()-1));
+                width = Math.abs(rect.tl().x - rect.br().x);
                 //Center of bounding box
                 centerPointHub = new Point((rect.tl().x+rect.br().x)*0.5, (rect.tl().y+rect.br().y)*0.5);
                 Imgproc.circle(finalMat, centerPointHub, 5, new Scalar(0, 0, 255), 7);
@@ -222,7 +219,7 @@ public class HubVisionPipeline extends LinearOpMode {
                 //Scalar centerOfMass = Core.mean(contours.get(contours.size()-1));
                 //Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
             }
-            else centerPointHub = new Point(320, 240);
+            else centerPointHub = new Point(-1, 240);
 
 
 //            double leftEdge = -1, rightEdge = -1;
