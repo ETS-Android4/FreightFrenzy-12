@@ -1,26 +1,36 @@
 package org.firstinspires.ftc.teamcode.Vision;
 
+import static org.firstinspires.ftc.teamcode.TeleOp.RRTeleOp.targetX;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcontroller.external.samples.SensorColor;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
+import org.firstinspires.ftc.teamcode.TeleOp.RRTeleOp;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
+import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvPipeline;
 import org.openftc.easyopencv.OpenCvWebcam;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -40,20 +50,23 @@ import java.util.concurrent.TimeUnit;
 @TeleOp
 public class HubVisionPipelineBlue extends LinearOpMode {
 
-    private final int rows = 640;
-    private final int cols = 480;
-    public static int hueMin = 110, hueMax = 130, satMin = 120, satMax = 225, valMin = 60, valMax = 255;
-    public static int blurSize = 11, erodeSize = 15, dilateSize = 25;
+    public final int rows = 640;
+    public final int cols = 480;
+    public static int hueMin = 0, hueMax = 20, satMin = 80, satMax = 200, valMin = 110, valMax = 180;
+    public static int blurSize = 11, erodeSize = 19, dilateSize = 25;
     public static int extract = 1;
     public static int g;
     public static int exp;
 
-    public static HubVisionPipelinePhone.hubScanPipeline.Stage stageToRenderToViewport = HubVisionPipelinePhone.hubScanPipeline.Stage.RAW;
-    public static HubVisionPipelinePhone.hubScanPipeline.Stage[] stages = HubVisionPipelinePhone.hubScanPipeline.Stage.values();
+    public static double width = 0;
+
+    public static Stage stageToRenderToViewport = Stage.RAW;
+    public static Stage[] stages = Stage.values();
 
     public static int currentStageNum = stageToRenderToViewport.ordinal();
-
     public static int nextStageNum = currentStageNum + 1;
+
+    private static Point centerPointHub = new Point(320, 240);
 
     OpenCvWebcam webCam, webcam2;
 
@@ -64,6 +77,10 @@ public class HubVisionPipelineBlue extends LinearOpMode {
         HSVTHRESH,
         MORPH,
         FINAL
+    }
+
+    public static Point getCenterPointHub() {
+        return centerPointHub;
     }
 
     @Override
@@ -95,6 +112,8 @@ public class HubVisionPipelineBlue extends LinearOpMode {
         exposure.setMode(ExposureControl.Mode.Manual);
         g = gain.getGain();
         exp = (int) exposure.getExposure(TimeUnit.MILLISECONDS);
+        exp = 20;
+        g = 40;
 
         //webcam2.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
         //width, height
@@ -135,6 +154,10 @@ public class HubVisionPipelineBlue extends LinearOpMode {
              * so whatever we do here, we must do quickly.
              */
 
+            int currentStageNum = stageToRenderToViewport.ordinal();
+
+            int nextStageNum = currentStageNum + 1;
+
             if(nextStageNum >= stages.length)
             {
                 nextStageNum = 0;
@@ -162,24 +185,55 @@ public class HubVisionPipelineBlue extends LinearOpMode {
 
             Core.inRange(hsvMat, minValues, maxValues, mask);
 
-            Mat erode = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(erodeSize, erodeSize));
+            Mat erode = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(erodeSize, erodeSize*4));
             Mat dilate = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(dilateSize, dilateSize));
 
             Imgproc.erode(mask, morphedMat, erode);
             Imgproc.dilate(morphedMat, morphedMat, dilate);
-            finalMat = mask;
+
+            morphedMat.copyTo(finalMat);
             Imgproc.cvtColor(finalMat, finalMat, Imgproc.COLOR_GRAY2BGR);
 
             List<MatOfPoint> contours = new ArrayList<>();
             Mat hierarchy = new Mat();
 
-            //Imgproc.findContours(mask, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
-//            if(hierarchy.size().height > 0 && hierarchy.size().width >0){
-//                for(int i =0; i >=0; i = (int) hierarchy.get(0,i)[0]){
-//                    Imgproc.drawContours(finalMat, contours, i, new Scalar(0,0,255));
-//                }
-//            }
-//
+            Imgproc.findContours(morphedMat, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
+            if(hierarchy.size().height > 0 && hierarchy.size().width >0){
+                int i = 0;
+                int max = contours.size();
+                while(i < max && max > 0){
+                    Rect rec = Imgproc.boundingRect(contours.get(i));
+                    if(rec.br().y < 380){
+                        contours.remove(i);
+                        max--;
+                        i--;
+                    }
+                    i++;
+                }
+                if(contours.size() > 0) {
+                    contours.sort(new Comparator<MatOfPoint>() {
+                        @Override
+                        public int compare(MatOfPoint c1, MatOfPoint c2) {
+                            return (int) (Imgproc.contourArea(c1) - Imgproc.contourArea(c2));
+                        }
+                    });
+                    Imgproc.drawContours(finalMat, contours,contours.size()-1, new Scalar(0, 255, 0), 5);
+                    //Bounding box of largest contour
+                    Rect rect = Imgproc.boundingRect(contours.get(contours.size()-1));
+                    width = Math.abs(rect.tl().x - rect.br().x);
+                    //Center of bounding box
+                    centerPointHub = new Point((rect.tl().x+rect.br().x)*0.5, (rect.tl().y+rect.br().y)*0.5);
+                    Imgproc.circle(finalMat, centerPointHub, 5, new Scalar(0, 0, 255), 7);
+                    //Draw bounding box
+                    Imgproc.rectangle(finalMat, rect, new Scalar(255, 0, 0));
+
+                    //Draw center of mass of largest contour
+                    Scalar centerOfMass = Core.mean(contours.get(contours.size()-1));
+                    Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
+                }
+            }
+            else centerPointHub = new Point(-1, 240);
+
 
 //            double leftEdge = -1, rightEdge = -1;
 //            for(int x = 0; x < finalMat.cols(); x++){
