@@ -34,7 +34,7 @@ import java.util.List;
  * monitor: 640 x 480
  *YES
  */
-@Config
+
 @Autonomous
 public class BarCodeDuckPipeline extends LinearOpMode {
 
@@ -45,7 +45,7 @@ public class BarCodeDuckPipeline extends LinearOpMode {
     public static int thresh = 210, redThresh = 137;
     public static int duckLocation = -1;
     public static int colorSpace = 41;
-    public static Point leftUL = new Point(85, 120), middleUL = new Point(200, 120), rightUL = new Point(290, 120);
+    public static int leftX = 85, middleX = 200, rightX = 290, allY = 120;
     public static int rotateAngle = 90;
     public static int extract = 1;
 
@@ -95,6 +95,8 @@ public class BarCodeDuckPipeline extends LinearOpMode {
         Mat rawMat = new Mat();
         Mat YCRCBMat = new Mat();
         Mat ExtractMat = new Mat();
+
+        Point leftUL = new Point(leftX, allY), middleUL = new Point(middleX, allY), rightUL = new Point(rightX, allY);
 
         enum Stage
         {

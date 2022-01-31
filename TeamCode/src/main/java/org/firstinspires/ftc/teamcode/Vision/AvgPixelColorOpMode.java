@@ -33,7 +33,7 @@ import java.util.List;
  * monitor: 640 x 480
  *YES
  */
-@Config
+
 @Disabled
 //@Autonomous
 public class AvgPixelColorOpMode extends LinearOpMode {
