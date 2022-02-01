@@ -133,8 +133,8 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         imu = new ThreadedIMU(hwMap);
         motors = Arrays.asList(frontLeft, backLeft, backRight, frontRight);
 
-        left = new ThreadedAnalogSensor(hwMap, "left", distance);
-        right = new ThreadedAnalogSensor(hwMap, "right", distance);
+        //left = new ThreadedAnalogSensor(hwMap, "left", distance);
+        //right = new ThreadedAnalogSensor(hwMap, "right", distance);
         front = new ThreadedAnalogSensor(hwMap, "front", distance);
 
         setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

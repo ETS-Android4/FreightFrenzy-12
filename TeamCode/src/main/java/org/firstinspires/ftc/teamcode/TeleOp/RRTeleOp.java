@@ -44,7 +44,7 @@ public class RRTeleOp extends LinearOpMode {
 
     public static double p = 0.0008, targetX = 200, yPow = 0.6;
 
-    public static double OPEN = 0.02, CLOSE = 0.69, FLIPDOWN = 1, x = 20, y = 60; //0.23 dropper position to for auto lowest level
+    public static double OPEN = 0.02, CLOSE = 0.69, FLIPDOWN = 1, x = -30, y = 24, a = 45; //0.23 dropper position to for auto lowest level
 
     public static int[] levels = {0, 660, 1800, 2500};
 
@@ -124,18 +124,20 @@ public class RRTeleOp extends LinearOpMode {
         dumpThread = new Thread(dump);
 
         Sequence forward = new Sequence(() -> {
-            config.setPoseEstimate(new Pose2d(0, 0));
             config.turn(-imuHeading);
-            double wallX = config.left.get()[0];
+            config.imu.resetIMU();
+            config.setPoseEstimate(new Pose2d(2 - config.front.get()[0], 0));
             Trajectory traj = config.trajectoryBuilder(config.getPoseEstimate())
-                    .strafeLeft(wallX - 1)
+                    .strafeTo(new Vector2d(-x, y))
                     .build();
             config.followTrajectory(traj);
 
             Trajectory traj2 = config.trajectoryBuilder(config.getPoseEstimate())
-                    .forward(y)
+                    .back(y)
                     .build();
             config.followTrajectory(traj2);
+
+            config.turn(Math.toRadians(a));
         });
         testThread = new Thread(forward);
 
@@ -154,12 +156,16 @@ public class RRTeleOp extends LinearOpMode {
                 System.out.println("This piece of shit has a power of " + power + " and an x of " + x);
             }
             setPower(0, 0, 0);
-        });
+        }, forward);
         hubThread = new Thread(turnToHub);
 
         while(!isStopRequested()) {
 
-            hardware.waitForCycle();
+            try {
+                hardware.waitForCycle();
+            } catch(Exception e) {
+                System.out.println("Exception " + e);
+            }
 
             //config.ingest.setPower(ingesterSpeed);
             //config.spinner.setPower(gamepad2.left_stick_y);
@@ -226,13 +232,16 @@ public class RRTeleOp extends LinearOpMode {
             double speed = gamepad1.right_bumper ? 0.3 : 1;
             double x = 0.6 * -gamepad1.left_trigger + 0.6 * gamepad1.right_trigger + gamepad1.left_stick_x, y = gamepad1.left_stick_y, a = gamepad1.right_stick_x;
 
-            //if(gamepad1.dpad_left && !testThread.isAlive()) testThread.start();
+            if(gamepad1.dpad_left && !testThread.isAlive()) testThread.start();
 
             if(!testThread.isAlive() && !hubThread.isAlive()) setPower(speed * x, -speed * y, speed * a + power);
+
+            if(gamepad2.back) config.imu.resetIMU();
 
             telemetry.addData("Heading: ", imuHeading);
             telemetry.addData("Power: ", config.backLeft.get()[0]);
             telemetry.addData("Width: ", HubVisionPipeline.width);
+            telemetry.addData("Distance: ", config.front.get()[0]);
             //telemetry.addData("Last Heading: ", lastHeading);
             //telemetry.addData("Level: ", currentLevel);
             //telemetry.addData("Slide Height: ", tempPos);
@@ -243,6 +252,50 @@ public class RRTeleOp extends LinearOpMode {
         }
 
         hardware.Stop();
+    }
+
+    public Pose2d warehouseSensorPose() {
+        //Red side
+        if(isStopRequested()) return null;
+        double imuHeading = config.imu.get()[0];
+        double right = config.right.get()[0];
+        double front = config.front.get()[0];
+
+        if(right < 0 || right > 60) right = -1;
+        if(front < 0 || front > 60) front = -1;
+
+        double cos = Math.abs(Math.cos(imuHeading));
+        double sin = Math.abs(Math.sin(imuHeading));
+
+        //Getting distance from distance sensor to either wall.
+        double rightCos = right * cos;
+        double rightSin = right * sin;
+        double frontCos = front * cos;
+        double frontSin = front * sin;
+
+        //Assumes radially centered.
+        rightCos += sensorSideOffset * Math.abs(Math.cos(imuHeading));
+        rightSin += sensorSideOffset * Math.abs(Math.sin(imuHeading));
+        frontCos += sensorStrightOffset * Math.abs(Math.cos(imuHeading));
+        frontSin += sensorStrightOffset * Math.abs(Math.sin(imuHeading));
+
+        //Get actual X and Y of each position, assuming each input is good, based on heading for every value.
+        //Assuming offset of sensor from wall of 2.
+        rightCos = Math.abs(imuHeading) < Math.PI / 2 ? 144 - rightCos : rightCos - 2; //Right or left
+        rightSin = imuHeading < 0 ? 144 - rightSin : rightSin - 2; //Back or front
+        frontCos = Math.abs(imuHeading) < Math.PI / 2 ? 144 - frontCos : frontCos - 2; //Front or back
+        frontSin = imuHeading < 0 ? frontSin - 2 : 144 - frontSin; //Left or right
+
+        Pose2d pose = config.getPoseEstimate();
+        double poseX = pose.getX(), poseY = pose.getY();
+        double confidence = 6;
+
+        if(Math.abs(rightCos - poseX) < confidence || Math.abs(rightCos - frontSin) < confidence) poseX = rightCos;
+        else if(Math.abs(frontSin - poseX) < confidence) poseX = frontSin;
+        if(Math.abs(frontCos - poseY) < confidence || Math.abs(frontCos - rightSin) < confidence) poseY = frontCos;
+        else if(Math.abs(rightSin - poseX) < confidence) poseY = rightSin;
+
+        return new Pose2d(poseX, poseY);
     }
 
     public Pose2d sensorPoseAnalog() {
@@ -257,6 +310,7 @@ public class RRTeleOp extends LinearOpMode {
 
         //drive.imu.gettingInput = true;
         if(isStopRequested()) return null;
+        double maxHead = 30;
         double imuHeading = config.imu.get()[0];
         double left = -1; //config.left.get()[0];
         double right = config.right.get()[0];

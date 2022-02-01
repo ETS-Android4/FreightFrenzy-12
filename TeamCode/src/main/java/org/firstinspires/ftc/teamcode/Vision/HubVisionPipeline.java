@@ -214,32 +214,9 @@ public class HubVisionPipeline extends LinearOpMode {
                 Imgproc.circle(finalMat, centerPointHub, 5, new Scalar(0, 0, 255), 7);
                 //Draw bounding box
                 Imgproc.rectangle(finalMat, rect, new Scalar(255, 0, 0));
-
-                //Draw center of mass of largest contour
-                //Scalar centerOfMass = Core.mean(contours.get(contours.size()-1));
-                //Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
             }
             else centerPointHub = new Point(-1, 240);
 
-
-//            double leftEdge = -1, rightEdge = -1;
-//            for(int x = 0; x < finalMat.cols(); x++){
-//                double[] pixel = finalMat.get(450, x);
-//                if(pixel[0] == 255){
-//                    leftEdge = pixel[0];
-//                    break;
-//                }
-//            }
-//            for(int x = finalMat.cols()-1; x>0; x--){
-//                double[] pixel = finalMat.get(450,x);
-//                if(pixel[0] == 255){
-//                    rightEdge = pixel[0];
-//                    break;
-//                }
-//            }
-//            Imgproc.cvtColor(finalMat, finalMat, Imgproc.COLOR_GRAY2RGB);
-//            Imgproc.line(finalMat, new Point(1, 450), new Point(639, 450), new Scalar(0,255,0), 3);
-//            Imgproc.line(finalMat, new Point(leftEdge, 0), new Point(rightEdge, 479), new Scalar(255,0,0), 7);
             switch (stageToRenderToViewport) {
                 case RAW: {
                     return rawMat;
