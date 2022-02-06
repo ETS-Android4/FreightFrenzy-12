@@ -43,7 +43,7 @@ public class FreightRedPathWarehouse extends LinearOpMode {
 
     public static int duckLocation = -1, manualDuckLocation = -1;
 
-    public static int leftX = 85, middleX = 200, rightX = 290, allY = 120;
+    public static int leftX = 5, middleX = 100, rightX = 260, allY = 195;
 
     public static double level1 = 660, level2 = 2000, sensorSideOffset, sensorStrightOffset;
 
