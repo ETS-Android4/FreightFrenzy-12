@@ -43,7 +43,7 @@ public class RRTeleOp extends LinearOpMode {
 
     public static double sensorSideOffset = 0, sensorStrightOffset = 0;
 
-    public static double p = 0.0008, targetX = 200, yPow = 0.6;
+    public static double p = 0.00009, targetX = 150, yPow = 1, maximumHubWidth = 130, startingSlowDownWidth = 80, slowDownFactorDenominator = 10;
 
     public static double OPEN = 0.02, CLOSE = 0.69, FLIPDOWN = 1, x = 30, y = 24, a = 53; //0.23 dropper position to for auto lowest level
 
@@ -143,12 +143,14 @@ public class RRTeleOp extends LinearOpMode {
             double power = 1;
             double x = HubVisionPipeline.getCenterPointHub().x;
             double yPower = -0.4;
-            while(HubVisionPipeline.width < 110 && x != -1 && yPower < 0) {
+            double initialW = HubVisionPipeline.width;
+            while(HubVisionPipeline.width < (maximumHubWidth-15) && x != -1 && yPower < 0) {
                 HardwareThread.waitForCycle();
-                double w = HubVisionPipeline.width;
+                double inputW = HubVisionPipeline.width;
                 power = p * (targetX - x);
-                double slowDownFactor = Math.max((w - 80) / 10, 0);
-                yPower = Math.min(Math.abs(power) + slowDownFactor - yPow, 0);
+                double slowDownFactor = Math.max(Math.pow((maximumHubWidth - inputW), 2) / Math.pow((maximumHubWidth - initialW), 2), 0);
+                yPower = -slowDownFactor*yPow;
+                //yPower = Math.min(Math.abs(power) - slowDownFactor*yPow, 0);
                 setPower(0, yPower, power);
                 x = HubVisionPipeline.getCenterPointHub().x;
                 System.out.println("This piece of shit has a power of " + power + " and an x of " + x);
@@ -236,16 +238,21 @@ public class RRTeleOp extends LinearOpMode {
 
             if(gamepad2.back) config.imu.resetIMU();
 
+
+
             telemetry.addData("Heading: ", imuHeading);
             telemetry.addData("Power: ", config.backLeft.get()[0]);
             telemetry.addData("Width: ", HubVisionPipeline.width);
             telemetry.addData("Distance: ", config.front.get()[0]);
+            telemetry.addData("HubCenterPoint: ", HubVisionPipeline.getCenterPointHub().x);
             //telemetry.addData("Last Heading: ", lastHeading);
             telemetry.addData("Level: ", currentLevel);
             telemetry.addData("Slide Height: ", tempPos);
             //telemetry.addData("Drivetrain Current Draw: ");
             telemetry.addData("Limit: ", config.limit.get()[0]);
            // telemetry.addData("Expected Height: ", levels[currentLevel]);
+            //telemetry.addData("Limit: ", config.limit.get()[0]);
+            //telemetry.addData("Expected Height: ", levels[currentLevel]);
             telemetry.update();
         }
 

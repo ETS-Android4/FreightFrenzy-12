@@ -24,7 +24,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
  * monitor: 640 x 480
  *YES
  */
-@Config
+
 @Disabled
 //@Autonomous
 public class externalCamera extends LinearOpMode {

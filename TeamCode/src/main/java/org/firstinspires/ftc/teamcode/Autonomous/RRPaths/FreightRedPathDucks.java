@@ -25,9 +25,6 @@ import org.openftc.easyopencv.OpenCvPipeline;
 
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.colorSpace;
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.extract;
-import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.leftUL;
-import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.middleUL;
-import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.rightUL;
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.sampleHeight;
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.sampleWidth;
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
@@ -47,6 +44,8 @@ public class FreightRedPathDucks extends LinearOpMode {
 
     public static int duckLocation = -1, manualDuckLocation = -1;
 
+    public static int leftX = 5, middleX = 100, rightX = 260, allY = 195;
+
     public static double level1 = 660, level2 = 2000, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.64, HALF = 0.21;
@@ -61,7 +60,7 @@ public class FreightRedPathDucks extends LinearOpMode {
         drive.setPoseEstimate(startPose);
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
         webCam.openCameraDevice();//open camera
         webCam.setPipeline(new duckScanPipeline());
         webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
@@ -90,8 +89,8 @@ public class FreightRedPathDucks extends LinearOpMode {
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
 
-        drive.spinner.setPower(0.8);
-        sleep(3000);
+        drive.spinner.setPower(0.5);
+        sleep(2000);
         drive.spinner.setPower(0);
 
         Pose2d temp = drive.getPoseEstimate();
@@ -246,7 +245,6 @@ public class FreightRedPathDucks extends LinearOpMode {
         Mat rawMat = new Mat();
         Mat YCRCBMat = new Mat();
         Mat ExtractMat = new Mat();
-
         enum Stage
         {
             RAW,
@@ -280,6 +278,7 @@ public class FreightRedPathDucks extends LinearOpMode {
         @Override
         public Mat processFrame(Mat input)
         {
+            Point leftUL = new Point(leftX, allY), middleUL = new Point(middleX, allY), rightUL = new Point(rightX, allY);
             rawMat = input;
             //Imgproc.cvtColor(input, YCRCBMat, Imgproc.COLOR_BGR2YCrCb);
             //YCRCBMat = rawMat;

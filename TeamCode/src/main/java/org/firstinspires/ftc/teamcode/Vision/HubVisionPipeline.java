@@ -53,7 +53,7 @@ public class HubVisionPipeline extends LinearOpMode {
     public final int rows = 640;
     public final int cols = 480;
     public static int hueMin = 115, hueMax = 125, satMin = 60, satMax = 255, valMin = 110, valMax = 180;
-    public static int blurSize = 11, erodeSize = 15, dilateSize = 25;
+    public static int blurSize = 11, erodeSize = 19, dilateSize = 25;
     public static int extract = 1;
     public static int g;
     public static int exp;
@@ -185,7 +185,7 @@ public class HubVisionPipeline extends LinearOpMode {
 
             Core.inRange(hsvMat, minValues, maxValues, mask);
 
-            Mat erode = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(erodeSize, erodeSize));
+            Mat erode = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(erodeSize, erodeSize*4));
             Mat dilate = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_RECT, new Size(dilateSize, dilateSize));
 
             Imgproc.erode(mask, morphedMat, erode);
@@ -199,21 +199,38 @@ public class HubVisionPipeline extends LinearOpMode {
 
             Imgproc.findContours(morphedMat, contours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
             if(hierarchy.size().height > 0 && hierarchy.size().width >0){
-                contours.sort(new Comparator<MatOfPoint>() {
-                    @Override
-                    public int compare(MatOfPoint c1, MatOfPoint c2) {
-                        return (int) (Imgproc.contourArea(c1) - Imgproc.contourArea(c2));
+                int i = 0;
+                int max = contours.size();
+                while(i < max && max > 0){
+                    Rect rec = Imgproc.boundingRect(contours.get(i));
+                    if(rec.br().y < 380){
+                        contours.remove(i);
+                        max--;
+                        i--;
                     }
-                });
-                Imgproc.drawContours(finalMat, contours,contours.size()-1, new Scalar(0, 255, 0), 5);
-                //Bounding box of largest contour
-                Rect rect = Imgproc.boundingRect(contours.get(contours.size()-1));
-                width = Math.abs(rect.tl().x - rect.br().x);
-                //Center of bounding box
-                centerPointHub = new Point((rect.tl().x+rect.br().x)*0.5, (rect.tl().y+rect.br().y)*0.5);
-                Imgproc.circle(finalMat, centerPointHub, 5, new Scalar(0, 0, 255), 7);
-                //Draw bounding box
-                Imgproc.rectangle(finalMat, rect, new Scalar(255, 0, 0));
+                    i++;
+                }
+                if(contours.size() > 0) {
+                    contours.sort(new Comparator<MatOfPoint>() {
+                        @Override
+                        public int compare(MatOfPoint c1, MatOfPoint c2) {
+                            return (int) (Imgproc.contourArea(c1) - Imgproc.contourArea(c2));
+                        }
+                    });
+                    Imgproc.drawContours(finalMat, contours,contours.size()-1, new Scalar(0, 255, 0), 5);
+                    //Bounding box of largest contour
+                    Rect rect = Imgproc.boundingRect(contours.get(contours.size()-1));
+                    width = Math.abs(rect.tl().x - rect.br().x);
+                    //Center of bounding box
+                    centerPointHub = new Point((rect.tl().x+rect.br().x)*0.5, (rect.tl().y+rect.br().y)*0.5);
+                    Imgproc.circle(finalMat, centerPointHub, 5, new Scalar(0, 0, 255), 7);
+                    //Draw bounding box
+                    Imgproc.rectangle(finalMat, rect, new Scalar(255, 0, 0));
+
+                    //Draw center of mass of largest contour
+                    //Scalar centerOfMass = Core.mean(contours.get(contours.size()-1));
+                    //Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
+                }
             }
             else centerPointHub = new Point(-1, 240);
 

@@ -5,6 +5,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
+import org.checkerframework.common.reflection.qual.GetConstructor;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -34,20 +35,21 @@ import java.util.List;
  * monitor: 640 x 480
  *YES
  */
+
 @Config
 @Autonomous
 public class BarCodeDuckPipeline extends LinearOpMode {
 
     private static int rows = 320;
     private static int cols = 240;
-    public static int sampleWidth = 20;
-    public static int sampleHeight = 10;
-    public static int thresh = 210, redThresh = 137;
+    public static int sampleWidth = 50;
+    public static int sampleHeight = 20;
+    public static int thresh = 105, redThresh = 137;
     public static int duckLocation = -1;
     public static int colorSpace = 41;
-    public static Point leftUL = new Point(85, 120), middleUL = new Point(200, 120), rightUL = new Point(290, 120);
+    public static int leftX = 85, middleX = 200, rightX = 290, allY = 120;
     public static int rotateAngle = 90;
-    public static int extract = 1;
+    public static int extract = 0;
 
     OpenCvCamera webCam, webcam2;
 
@@ -95,6 +97,8 @@ public class BarCodeDuckPipeline extends LinearOpMode {
         Mat rawMat = new Mat();
         Mat YCRCBMat = new Mat();
         Mat ExtractMat = new Mat();
+
+        Point leftUL = new Point(leftX, allY), middleUL = new Point(middleX, allY), rightUL = new Point(rightX, allY);
 
         enum Stage
         {
@@ -170,6 +174,8 @@ public class BarCodeDuckPipeline extends LinearOpMode {
             else if(!leftDuck && midDuck && !rightDuck) duckLocation = 1;
             else if(!leftDuck && !midDuck && rightDuck) duckLocation = 2;
             else duckLocation = -1;
+
+            System.out.println(duckLocation);
 
             Imgproc.rectangle(ExtractMat, leftUL, new Point(leftUL.x + sampleWidth, leftUL.y + sampleHeight), leftDuck ? new Scalar(0, 255, 0) : new Scalar(255, 0, 0));
             Imgproc.rectangle(ExtractMat, middleUL, new Point(middleUL.x + sampleWidth, middleUL.y + sampleHeight), midDuck ? new Scalar(0, 255, 0) : new Scalar(255, 0, 0));

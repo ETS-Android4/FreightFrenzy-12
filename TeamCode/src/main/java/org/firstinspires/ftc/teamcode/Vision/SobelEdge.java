@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.Vision;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.opencv.core.Core;
@@ -27,7 +28,8 @@ import org.openftc.easyopencv.OpenCvPipeline;
  * monitor: 640 x 480
  *YES
  */
-@Config
+
+@Disabled
 //@Autonomous
 public class SobelEdge extends LinearOpMode {
 

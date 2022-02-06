@@ -26,9 +26,6 @@ import org.openftc.easyopencv.OpenCvPipeline;
 
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.colorSpace;
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.extract;
-import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.leftUL;
-import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.middleUL;
-import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.rightUL;
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.sampleHeight;
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.sampleWidth;
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
@@ -48,6 +45,8 @@ public class FreightBluePathDucks extends LinearOpMode {
 
     public static int duckLocation = -1, manualDuckLocation = -1;
 
+    public static int leftX = 5, middleX = 100, rightX = 260, allY = 195;
+
     public static double level1 = 660, level2 = 2000, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.64, HALF = 0.21;
@@ -62,7 +61,7 @@ public class FreightBluePathDucks extends LinearOpMode {
         drive.setPoseEstimate(startPose);
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
         webCam.openCameraDevice();//open camera
         webCam.setPipeline(new duckScanPipeline());
         webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
@@ -98,8 +97,8 @@ public class FreightBluePathDucks extends LinearOpMode {
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
 
-        drive.spinner.setPower(-0.8);
-        sleep(3000);
+        drive.spinner.setPower(-0.5);
+        sleep(2000);
         drive.spinner.setPower(0);
 
         Trajectory straf = drive.trajectoryBuilder(drive.getPoseEstimate())
@@ -249,7 +248,6 @@ public class FreightBluePathDucks extends LinearOpMode {
         Mat rawMat = new Mat();
         Mat YCRCBMat = new Mat();
         Mat ExtractMat = new Mat();
-
         enum Stage
         {
             RAW,
@@ -283,6 +281,7 @@ public class FreightBluePathDucks extends LinearOpMode {
         @Override
         public Mat processFrame(Mat input)
         {
+            Point leftUL = new Point(leftX, allY), middleUL = new Point(middleX, allY), rightUL = new Point(rightX, allY);
             rawMat = input;
             //Imgproc.cvtColor(input, YCRCBMat, Imgproc.COLOR_BGR2YCrCb);
             //YCRCBMat = rawMat;
@@ -315,15 +314,17 @@ public class FreightBluePathDucks extends LinearOpMode {
             color3 /= sampleWidth * sampleHeight;
 
             boolean leftDuck = color1 > thresh;
-            boolean midDuck = color2 > thresh;
+            boolean midDuck = color2 > thresh; // midDuck doesn't matter
             boolean rightDuck = color3 > thresh;
 
             System.out.println("Color1: " + color1 + ", Color2: " + color2 + "Color3: " + color3);
 
-            if(leftDuck && !midDuck && !rightDuck) duckLocation = 0;
-            else if(!leftDuck && midDuck && !rightDuck) duckLocation = 1;
-            else if(!leftDuck && !midDuck && rightDuck) duckLocation = 2;
+            if(!leftDuck && !rightDuck) duckLocation = 0;
+            else if(leftDuck && !rightDuck) duckLocation = 1;
+            else if(!leftDuck && rightDuck) duckLocation = 2;
             else duckLocation = -1;
+
+            System.out.println(duckLocation);
 
             Imgproc.rectangle(ExtractMat, leftUL, new Point(leftUL.x + sampleWidth, leftUL.y + sampleHeight), leftDuck ? new Scalar(0, 255, 0) : new Scalar(255, 0, 0));
             Imgproc.rectangle(ExtractMat, middleUL, new Point(middleUL.x + sampleWidth, middleUL.y + sampleHeight), midDuck ? new Scalar(0, 255, 0) : new Scalar(255, 0, 0));
