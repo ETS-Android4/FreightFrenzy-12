@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.TeleOp;
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.threadedhardware.HardwareThread;
 import org.firstinspires.ftc.teamcode.threadedhardware.SampleConfiguration;
@@ -48,6 +49,14 @@ public class TestTeleOp extends LinearOpMode {
         config.slides.setPower(0);
 
         slidesOffset = config.slides.get()[1];
+
+        while(!isStarted() && !isStopRequested()) {
+            telemetry.addData("Limit: ", config.limit.get()[0]);
+            telemetry.update();
+        }
+
+        config.slides.setTargetPosition(0);
+        config.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         waitForStart();
 
@@ -109,13 +118,15 @@ public class TestTeleOp extends LinearOpMode {
 
             double pow = tempPos > levels[currentLevel] ? -1 : 1;
 
-            if(Math.abs(tempPos - levels[currentLevel]) < 150 || (pow == -1 && config.limit.get()[0] == 1)) pow = 0;
+            if(Math.abs(tempPos - levels[currentLevel]) < 50 || (pow == -1 && config.limit.get()[0] == 1)) pow = 0.05;
 
-            config.slides.setPower((!gamepad2.left_bumper ? pow : (config.limit.get()[0] != 1 || gamepad2.right_stick_y > 0) ? gamepad2.right_stick_y : 0));
+            //config.slides.setPower((!gamepad2.left_bumper ? pow : (config.limit.get()[0] != 1 || gamepad2.right_stick_y > 0) ? gamepad2.right_stick_y : 0));
             double pow1 = Math.abs(gamepad2.right_stick_y) < 0.3 ? 0 : gamepad2.right_stick_y;
             if((tempPos <= 0 && pow1 < 0) || config.limit.get()[0] == 1) pow1 = 0;
 
-            config.slides.setPower(pow1 == 0 ? pow : pow1);
+            //config.slides.setPower(pow1 == 0 ? pow : pow1);
+            config.slides.setTargetPosition(levels[currentLevel]);
+            config.slides.setPower(1);
 
             if(turning || gamepad1.left_trigger > 0.3 || gamepad1.right_trigger > 0.3) {
                 lastHeading = imuHeading;

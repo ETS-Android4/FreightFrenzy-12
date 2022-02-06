@@ -51,8 +51,7 @@ public class ThreadedMotor implements Active, DcMotor {
     }
 
     public void setHardware() {
-        if(mode == RunMode.RUN_TO_POSITION);
-        else if(powerMode) motor.setPower(runVal);
+        if(powerMode) motor.setPower(runVal);
         else motor.setVelocity(runVal);
     }
 
@@ -88,9 +87,9 @@ public class ThreadedMotor implements Active, DcMotor {
 
     public void updateMode() {
         if(change) {
+            if(mode == RunMode.RUN_TO_POSITION) motor.setTargetPosition(position);
             motor.setMode(mode);
             motor.setZeroPowerBehavior(zpb);
-            if(mode == RunMode.RUN_TO_POSITION) motor.setTargetPosition(position);
             change = false;
         }
     }
@@ -158,6 +157,7 @@ public class ThreadedMotor implements Active, DcMotor {
     @Override
     public void setTargetPosition(int position) {
         this.position = position;
+        change = true;
     }
 
     @Deprecated

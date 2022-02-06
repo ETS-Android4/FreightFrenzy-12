@@ -126,12 +126,29 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
 
         ThreadedAnalogSensor.InterpretVoltage distance = ((double voltage, double max) -> 87.4 * (voltage - 0.138));
 
-        frontLeft = new ThreadedMotor(hwMap, "front_left_motor");
+
         backLeft = new ThreadedMotor(hwMap, "back_left_motor");
-        backRight = new ThreadedMotor(hwMap, "back_right_motor");
+        frontLeft = new ThreadedMotor(hwMap, "front_left_motor");
         frontRight = new ThreadedMotor(hwMap, "front_right_motor");
+        backRight = new ThreadedMotor(hwMap, "back_right_motor");
+        ingest = new ThreadedMotor(hwMap, "ingest");
+        preIngest = new ThreadedMotor(hwMap, "preingest");
+        spinner = new ThreadedMotor(hwMap, "spinner");
+        slides = new ThreadedMotor(hwMap, "slides");
+        dropper = new ThreadedServo(hwMap, "dropper");
+        flipdown = new ThreadedServo(hwMap, "flipdown");
+        limit = new ThreadedDigitalSensor(hwMap, "limit");
         imu = new ThreadedIMU(hwMap);
+
         motors = Arrays.asList(frontLeft, backLeft, backRight, frontRight);
+
+        slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        slides.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        spinner.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        ingest.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        preIngest.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        spinner.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //left = new ThreadedAnalogSensor(hwMap, "left", distance);
         //right = new ThreadedAnalogSensor(hwMap, "right", distance);
@@ -158,6 +175,7 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         if (RUN_USING_ENCODER) {
             setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
+        else setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // TODO: reverse any motors using DcMotor.setDirection()
         motors.get(0).reverse(true);

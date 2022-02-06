@@ -52,7 +52,7 @@ public class HubVisionPipeline extends LinearOpMode {
 
     public final int rows = 640;
     public final int cols = 480;
-    public static int hueMin = 115, hueMax = 125, satMin = 60, satMax = 255, valMin = 60, valMax = 150;
+    public static int hueMin = 115, hueMax = 125, satMin = 60, satMax = 255, valMin = 110, valMax = 180;
     public static int blurSize = 11, erodeSize = 15, dilateSize = 25;
     public static int extract = 1;
     public static int g;
