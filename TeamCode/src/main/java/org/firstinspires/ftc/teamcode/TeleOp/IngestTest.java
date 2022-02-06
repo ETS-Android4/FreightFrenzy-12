@@ -31,11 +31,11 @@ public class IngestTest extends LinearOpMode {
             //telemetry.addLine("Pos: " + config.motor.getCurrentPosition());
             telemetry.addLine("Limit: " + config.limit.getState());
             telemetry.update();
-            if(motorOn) {
+            /*if(motorOn) {
                 config.motor.setPower(power);
                 config.motor.setTargetPosition((int) motorPos);
             }
-            if(servoOn) config.servo.setPosition(pos);
+            if(servoOn) config.servo.setPosition(pos);*/
         }
 
 

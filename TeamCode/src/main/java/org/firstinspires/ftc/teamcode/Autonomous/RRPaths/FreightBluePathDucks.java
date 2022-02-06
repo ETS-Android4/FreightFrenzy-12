@@ -39,7 +39,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightBluePathDucks extends LinearOpMode {
 
-    public static double back = 6, toSpin = 21, strafe = 37, toHub = 32, park = 18;
+    public static double back = 6, toSpin = 18, strafe = 35, toHub = 30, park = 17;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 
@@ -47,7 +47,7 @@ public class FreightBluePathDucks extends LinearOpMode {
 
     public static int leftX = 5, middleX = 100, rightX = 260, allY = 195;
 
-    public static double level1 = 660, level2 = 2000, sensorSideOffset, sensorStrightOffset;
+    public static double level1 = 1100, level2 = 2400, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.64, HALF = 0.21;
 
@@ -61,7 +61,7 @@ public class FreightBluePathDucks extends LinearOpMode {
         drive.setPoseEstimate(startPose);
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
+        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
         webCam.openCameraDevice();//open camera
         webCam.setPipeline(new duckScanPipeline());
         webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
@@ -97,8 +97,8 @@ public class FreightBluePathDucks extends LinearOpMode {
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
 
-        drive.spinner.setPower(-0.5);
-        sleep(2000);
+        drive.spinner.setPower(-0.6);
+        sleep(2500);
         drive.spinner.setPower(0);
 
         Trajectory straf = drive.trajectoryBuilder(drive.getPoseEstimate())
