@@ -44,9 +44,9 @@ public class RRTeleOp extends LinearOpMode {
 
     public static double sensorSideOffset = 0, sensorStrightOffset = 0;
 
-    public static double p = 0.0003, targetX = 230, yPow = 0.8, maximumHubWidth = 155, imuP = 0.8;
+    public static double p = 0.0003, targetX = 230, yPow = 0.8, maximumHubWidth = 145, imuP = 0.5;
 
-    public static double OPEN = 0.02, CLOSE = 0.72, FLIPDOWN = 1, x = -32, y = 24, b = 36, a = 60, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
+    public static double OPEN = 0.02, CLOSE = 0.72, FLIPDOWN = 1, x = -28, y = 24, b = 36, a = 50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
 
     public static int[] levels = {0, 660, 1800, 2500};
 
@@ -112,6 +112,8 @@ public class RRTeleOp extends LinearOpMode {
         config.slides.setTargetPosition(slidesOffset);
         config.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
+        config.setPoseEstimate(new Pose2d(0, 0));
+
         while(!isStopRequested() && !isStarted()) {
             telemetry.addData("Limit: ", config.limit.get()[0]);
             telemetry.update();
@@ -148,7 +150,7 @@ public class RRTeleOp extends LinearOpMode {
             config.setPoseEstimate(new Pose2d(2 - front, config.getPoseEstimate().getY()));
             System.out.println(config.getPoseEstimate());
             Trajectory traj = config.trajectoryBuilder(config.getPoseEstimate())
-                    .strafeTo(new Vector2d(x, 0))
+                    .strafeTo(new Vector2d(x, 6))
                     .build();
             config.followTrajectory(traj);
 
@@ -158,6 +160,8 @@ public class RRTeleOp extends LinearOpMode {
                     .back(b)
                     .build();
             config.followTrajectory(traj2);
+
+            config.setPoseEstimate(new Pose2d(0, 0));
 
             imuTurn(Math.toRadians(a));
         });
@@ -208,10 +212,10 @@ public class RRTeleOp extends LinearOpMode {
 
             imuTurn(0);
 
-            double y = config.getPoseEstimate().getY();
+            Pose2d cur = config.getPoseEstimate();
 
             Trajectory fromHub = config.trajectoryBuilder(config.getPoseEstimate())
-                    .strafeLeft(y + y > 0 ? 2 : -2)
+                    .strafeTo(new Vector2d(cur.getX(), 8))
                     .build();
             config.followTrajectory(fromHub);
 
@@ -219,6 +223,8 @@ public class RRTeleOp extends LinearOpMode {
                     .forward(hubX)
                     .build();
             config.followTrajectory(toWare);
+
+            config.setPoseEstimate(new Pose2d(0, 0));
 
             ingesterSpeed = 1;
 
@@ -323,6 +329,8 @@ public class RRTeleOp extends LinearOpMode {
             //telemetry.addData("Limit: ", config.limit.get()[0]);
             //telemetry.addData("Expected Height: ", levels[currentLevel]);
             telemetry.update();
+
+            config.update();
         }
 
         hardware.Stop();
