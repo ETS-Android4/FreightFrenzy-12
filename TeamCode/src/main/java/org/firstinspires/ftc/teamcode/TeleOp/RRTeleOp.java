@@ -16,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.teamcode.Vision.HubVisionPipeline;
+import org.firstinspires.ftc.teamcode.Vision.HubVisionPipelineBlue;
 import org.firstinspires.ftc.teamcode.threadedhardware.Hardware;
 import org.firstinspires.ftc.teamcode.threadedhardware.HardwareThread;
 import org.firstinspires.ftc.teamcode.threadedhardware.RoadRunnerConfiguration;
@@ -88,7 +89,7 @@ public class RRTeleOp extends LinearOpMode {
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam2"), cameraMonitorViewId);
         webCam.openCameraDevice();//open camera
-        webCam.setPipeline(new HubVisionPipeline.hubScanPipeline());
+        webCam.setPipeline(new HubVisionPipelineBlue.hubScanPipeline());
         webCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
         FtcDashboard.getInstance().startCameraStream(webCam, 0);
 
@@ -163,43 +164,46 @@ public class RRTeleOp extends LinearOpMode {
 
             ingesterSpeed = 0;
 
+            config.setPoseEstimate(new Pose2d(0, 0));
+
             Trajectory traj2 = config.trajectoryBuilder(config.getPoseEstimate())
                     .back(b)
                     .build();
             config.followTrajectory(traj2);
 
-            config.setPoseEstimate(new Pose2d(0, 0));
-
             imuTurn(Math.toRadians(a));
+
+            System.out.println();
         });
         testThread = new Thread(forward);
 
         Sequence turnToHub = new Sequence(() -> {
             double power;
-            double x = HubVisionPipeline.getCenterPointHub().x;
-            timeout = new ElapsedTime();
-            while(x == -1 && timeout.seconds() < 3) {
-                HardwareThread.waitForCycle();
-                setPower(0, 0, -0.1);
-                x = HubVisionPipeline.getCenterPointHub().x;
+            double x = HubVisionPipelineBlue.getCenterPointHub().x;
+            ElapsedTime time = new ElapsedTime();
+            while(x == -1 && time.seconds() < 5) {
+                setPower(0, 0, -0.15);
+                x = HubVisionPipelineBlue.getCenterPointHub().x;
             }
-            if(timeout.seconds() >= 3) {
-                lastTime = 4;
+
+            if(time.seconds() >= 5) {
+                lastTime = 6;
+                System.out.println("Returning");
                 return;
             }
 
-            lastTime = timeout.seconds();
+            lastTime = time.seconds();
 
             double yPower = -0.4;
-            double initialW = HubVisionPipeline.width;
-            while(HubVisionPipeline.width < (maximumHubWidth-15) && x != -1 && yPower < 0) {
+            double initialW = HubVisionPipelineBlue.width;
+            while(HubVisionPipelineBlue.width < (maximumHubWidth-15) && x != -1 && yPower < 0) {
                 HardwareThread.waitForCycle();
                 double inputW = HubVisionPipeline.width;
                 power = p * (targetX - x);
                 double slowDownFactor = Math.max(Math.pow((maximumHubWidth - inputW), 2) / Math.pow((maximumHubWidth - initialW), 2), 0);
                 yPower = Math.min(-slowDownFactor * yPow - 0.1 + Math.abs(power), 0);
                 setPower(0, yPower, power);
-                x = HubVisionPipeline.getCenterPointHub().x;
+                x = HubVisionPipelineBlue.getCenterPointHub().x;
             }
             setPower(0, 0, 0);
             config.dropper.set(OPEN);
@@ -210,7 +214,7 @@ public class RRTeleOp extends LinearOpMode {
 
         Sequence toWarehouse = new Sequence(() -> {
 
-            if(lastTime >= 3) return;
+            if(lastTime >= 5) return;
 
             Trajectory back = config.trajectoryBuilder(config.getPoseEstimate())
                     .forward(3)
@@ -331,9 +335,9 @@ public class RRTeleOp extends LinearOpMode {
 
             telemetry.addData("Heading: ", imuHeading);
             telemetry.addData("Power: ", config.backLeft.get()[0]);
-            telemetry.addData("Width: ", HubVisionPipeline.width);
+            telemetry.addData("Width: ", HubVisionPipelineBlue.width);
             telemetry.addData("Distance: ", config.front.get()[0]);
-            telemetry.addData("HubCenterPoint: ", HubVisionPipeline.getCenterPointHub().x);
+            telemetry.addData("HubCenterPoint: ", HubVisionPipelineBlue.getCenterPointHub().x);
             telemetry.addData("Current Position: ", config.getPoseEstimate());
             //telemetry.addData("Last Heading: ", lastHeading);
             telemetry.addData("Level: ", currentLevel);

@@ -52,8 +52,8 @@ public class HubVisionPipelineBlue extends LinearOpMode {
 
     public final int rows = 640;
     public final int cols = 480;
-    public static int hueMin = 3, hueMax = 15, satMin = 100, satMax = 180, valMin = 50, valMax = 150;
-    public static int blurSize = 11, erodeSize = 19, dilateSize = 25;
+    public static int hueMin = 3, hueMax = 20, satMin = 150, satMax = 220, valMin = 40, valMax = 80;
+    public static int blurSize = 11, erodeSize = 12, dilateSize = 36;
     public static int extract = 1;
     public static int g;
     public static int exp;
@@ -234,25 +234,6 @@ public class HubVisionPipelineBlue extends LinearOpMode {
             }
             else centerPointHub = new Point(-1, 240);
 
-
-//            double leftEdge = -1, rightEdge = -1;
-//            for(int x = 0; x < finalMat.cols(); x++){
-//                double[] pixel = finalMat.get(450, x);
-//                if(pixel[0] == 255){
-//                    leftEdge = pixel[0];
-//                    break;
-//                }
-//            }
-//            for(int x = finalMat.cols()-1; x>0; x--){
-//                double[] pixel = finalMat.get(450,x);
-//                if(pixel[0] == 255){
-//                    rightEdge = pixel[0];
-//                    break;
-//                }
-//            }
-//            Imgproc.cvtColor(finalMat, finalMat, Imgproc.COLOR_GRAY2RGB);
-//            Imgproc.line(finalMat, new Point(1, 450), new Point(639, 450), new Scalar(0,255,0), 3);
-//            Imgproc.line(finalMat, new Point(leftEdge, 0), new Point(rightEdge, 479), new Scalar(255,0,0), 7);
             switch (stageToRenderToViewport) {
                 case RAW: {
                     return rawMat;
