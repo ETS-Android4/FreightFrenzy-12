@@ -29,6 +29,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.firstinspires.ftc.teamcode.Vision.HubVisionPipeline.hubScanPipeline;
 
+import static org.firstinspires.ftc.teamcode.TeleOp.IngestTest.durationMilli;
+import static org.firstinspires.ftc.teamcode.TeleOp.IngestTest.rampF;
+import static org.firstinspires.ftc.teamcode.TeleOp.IngestTest.rampP;
+
 @Config
 @TeleOp(name="RRTeleOp")
 public class RRTeleOp extends LinearOpMode {
@@ -45,6 +49,8 @@ public class RRTeleOp extends LinearOpMode {
     public static double sensorSideOffset = 0, sensorStrightOffset = 0;
 
     public static double p = 0.0003, targetX = 230, yPow = 0.8, maximumHubWidth = 145, imuP = 0.5;
+
+    public static double durationMilli = 1500, rampP = -0.00075, rampF = -0.3;
 
     public static double OPEN = 0.02, CLOSE = 0.72, FLIPDOWN = 1, x = -28, y = 24, b = 36, a = 50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
 
@@ -66,7 +72,7 @@ public class RRTeleOp extends LinearOpMode {
 
     double ingesterSpeed, lastHeading, lastTime = 0;
 
-    ElapsedTime timeout;
+    ElapsedTime timeout, ducktime;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -76,6 +82,7 @@ public class RRTeleOp extends LinearOpMode {
         hardware.start();
 
         FtcDashboard dashboard = FtcDashboard.getInstance();
+        ducktime = new ElapsedTime();
 
         //1 camera at the moment.
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
@@ -296,6 +303,14 @@ public class RRTeleOp extends LinearOpMode {
                 lastHeading = imuHeading;
                 power = 0;
             }
+
+
+
+            if(gamepad2.left_stick_button && ducktime.milliseconds() > durationMilli){
+                ducktime.reset();
+            }
+            if(ducktime.milliseconds() < durationMilli) config.spinner.setPower(rampF + rampP * ducktime.milliseconds());
+            else config.spinner.setPower(0);
 
             if(dumpThread.isAlive());
             else if(gamepad1.start) dumpThread.start();

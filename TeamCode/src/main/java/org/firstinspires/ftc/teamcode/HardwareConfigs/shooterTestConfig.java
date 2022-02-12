@@ -19,10 +19,10 @@ public class shooterTestConfig {
 
         hwMap = ahwMap;
 
-        //motor = hwMap.get(DcMotorImplEx.class,"slides");
-        //motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        //motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        //motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        motor = hwMap.get(DcMotorImplEx.class,"spinner");
+        motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         //servo = hwMap.get(Servo.class, "dropper");
         limit = hwMap.get(DigitalChannelImpl.class, "limit");
         //loader = hwMap.get(Servo.class, "servo");

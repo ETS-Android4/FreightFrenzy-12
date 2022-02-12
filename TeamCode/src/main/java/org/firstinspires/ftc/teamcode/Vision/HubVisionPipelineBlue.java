@@ -52,7 +52,7 @@ public class HubVisionPipelineBlue extends LinearOpMode {
 
     public final int rows = 640;
     public final int cols = 480;
-    public static int hueMin = 0, hueMax = 20, satMin = 80, satMax = 200, valMin = 110, valMax = 180;
+    public static int hueMin = 3, hueMax = 15, satMin = 100, satMax = 180, valMin = 50, valMax = 150;
     public static int blurSize = 11, erodeSize = 19, dilateSize = 25;
     public static int extract = 1;
     public static int g;
@@ -101,7 +101,7 @@ public class HubVisionPipelineBlue extends LinearOpMode {
 
         //1 camera at the moment.
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+        webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam2"), cameraMonitorViewId);
         webCam.openCameraDevice();//open camera
         webCam.setPipeline(new hubScanPipeline());
         webCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
@@ -228,8 +228,8 @@ public class HubVisionPipelineBlue extends LinearOpMode {
                     Imgproc.rectangle(finalMat, rect, new Scalar(255, 0, 0));
 
                     //Draw center of mass of largest contour
-                    Scalar centerOfMass = Core.mean(contours.get(contours.size()-1));
-                    Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
+                    //Scalar centerOfMass = Core.mean(contours.get(contours.size()-1));
+                    //Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
                 }
             }
             else centerPointHub = new Point(-1, 240);

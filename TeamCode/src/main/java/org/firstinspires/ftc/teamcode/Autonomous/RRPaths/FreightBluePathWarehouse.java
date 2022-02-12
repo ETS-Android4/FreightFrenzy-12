@@ -5,6 +5,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.trajectory.MarkerCallback;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -39,7 +40,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightBluePathWarehouse extends LinearOpMode {
 
-    public static double back = 40, toHub = 6, toWall = 45, park = 32, scor = 3;
+    public static double back = 40, toHub = 6, toWall = 47, park = 32, scor = 3;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 
@@ -61,13 +62,22 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.setPoseEstimate(startPose);
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
+        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
         webCam.openCameraDevice();//open camera
         webCam.setPipeline(new duckScanPipeline());
         webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
         FtcDashboard.getInstance().startCameraStream(webCam, 0);
         ElapsedTime time = new ElapsedTime();
         double lastTime = 0;
+
+        drive.slides.setPower(-0.3);
+        telemetry.addData("Limit: ", drive.limit.getState());
+        telemetry.update();
+        while(!drive.limit.getState() && !isStopRequested() && !isStarted()){
+            telemetry.addData("Limit: ", drive.limit.getState());
+            telemetry.update();
+        }
+        drive.slides.setPower(0);
 
         waitForStart();
         if(isStopRequested()) return;
@@ -116,15 +126,24 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         sleep(300);
 
         drive.ingester.setPower(-1);
-        drive.preingest.setPower(1);
+        drive.preingest.setPower(0.8);
 
         Trajectory toPark = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .forward(park)
+                .forward(park+5)
                 .build();
         drive.followTrajectory(toPark);
 
+        Trajectory extraPush = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .forward(6)
+                .build();
+        drive.followTrajectory(extraPush);
+
         Trajectory back = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(park + 3)
+                .addTemporalMarker(1, () -> {
+                    drive.preingest.setPower(-1);
+                    drive.ingester.setPower(-1);
+                })
+                .back(park + 12)
                 .build();
         drive.followTrajectory(back);
 
@@ -135,7 +154,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.ingester.setPower(0);
 
         Trajectory strafe = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeRight(toWall)
+                .strafeRight(toWall-6)
                 .build();
         drive.followTrajectory(strafe);
 
@@ -148,7 +167,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         sleep(600);
 
         Trajectory toWal = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeLeft(toWall + 1)
+                .strafeLeft(toWall)
                 .build();
         drive.followTrajectory(toWal);
 
@@ -349,9 +368,9 @@ public class FreightBluePathWarehouse extends LinearOpMode {
 
             System.out.println("Color1: " + color1 + ", Color2: " + color2 + "Color3: " + color3);
 
-            if(leftDuck && !midDuck && !rightDuck) duckLocation = 0;
-            else if(!leftDuck && midDuck && !rightDuck) duckLocation = 1;
-            else if(!leftDuck && !midDuck && rightDuck) duckLocation = 2;
+            if(!leftDuck && !rightDuck) duckLocation = 0;
+            else if(leftDuck && !rightDuck) duckLocation = 1;
+            else if(!leftDuck && rightDuck) duckLocation = 2;
             else duckLocation = -1;
 
             Imgproc.rectangle(ExtractMat, leftUL, new Point(leftUL.x + sampleWidth, leftUL.y + sampleHeight), leftDuck ? new Scalar(0, 255, 0) : new Scalar(255, 0, 0));

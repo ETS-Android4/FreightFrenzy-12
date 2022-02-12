@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.HardwareConfigs.shooterTestConfig;
 
@@ -11,9 +12,9 @@ import org.firstinspires.ftc.teamcode.HardwareConfigs.shooterTestConfig;
 @TeleOp
 public class IngestTest extends LinearOpMode {
 
-    public static boolean motorOn = false, servoOn = false;
+    public static boolean motorOn = true, servoOn = false;
     public static double pos = 1;
-    public static double power = 0.85, motorPos = 500;
+    public static double power = 0.8, motorPos = 500, durationMilli = 1750, rampP = -0.0008, rampF = -0.3;
 
     //Duck carousel notes: good ducks can go about 0.1 faster on p1 and p2, and have a shorter s2 delay. However, bad ducks be scuffed. Maybe put bad ducks
     //on their side from the start to roll in? They turn over quickly regardless.
@@ -25,17 +26,20 @@ public class IngestTest extends LinearOpMode {
         //config.motor.setTargetPosition(1000);
         //config.motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         waitForStart();
+        ElapsedTime time = new ElapsedTime();
 
         while(!isStopRequested()) {
-            System.out.println("Limit: " + config.limit.getState());
-            //telemetry.addLine("Pos: " + config.motor.getCurrentPosition());
+            //System.out.println("Limit: " + config.limit.getState());
             telemetry.addLine("Limit: " + config.limit.getState());
             telemetry.update();
-            /*if(motorOn) {
-                config.motor.setPower(power);
-                config.motor.setTargetPosition((int) motorPos);
+            if(motorOn) {
+                if(gamepad2.left_stick_button && time.milliseconds() > durationMilli){
+                    time.reset();
+                }
+                if(time.milliseconds() < durationMilli) config.motor.setPower(rampF + rampP * time.milliseconds());
+                else config.motor.setPower(0);
             }
-            if(servoOn) config.servo.setPosition(pos);*/
+            //if(servoOn) config.servo.setPosition(pos);
         }
 
 
