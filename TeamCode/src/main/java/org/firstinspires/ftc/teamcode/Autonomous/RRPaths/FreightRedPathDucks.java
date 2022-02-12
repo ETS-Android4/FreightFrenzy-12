@@ -7,6 +7,7 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -38,15 +39,15 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightRedPathDucks extends LinearOpMode {
 
-    public static double back = 6, pastBarCode = 30, toHub = 28, park = 14, spinnerX = -5, spinnerY = -21;
+    public static double back = -5, toSpin = -15, strafe = 35, toHub = 27, park = 17;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 
     public static int duckLocation = -1, manualDuckLocation = -1;
 
-    public static int leftX = 5, middleX = 100, rightX = 260, allY = 195;
+    public static int leftX = 5, middleX = 100, rightX = 250, allY = 195;
 
-    public static double level1 = 660, level2 = 2000, sensorSideOffset, sensorStrightOffset;
+    public static double level1 = 1100, level2 = 2400, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.64, HALF = 0.21;
 
@@ -60,7 +61,7 @@ public class FreightRedPathDucks extends LinearOpMode {
         drive.setPoseEstimate(startPose);
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
+        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
         webCam.openCameraDevice();//open camera
         webCam.setPipeline(new duckScanPipeline());
         webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
@@ -80,30 +81,27 @@ public class FreightRedPathDucks extends LinearOpMode {
         telemetry.addData("Position: ", drive.getPoseEstimate());
         telemetry.update();
 
-        Trajectory backup = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeTo(new Vector2d(spinnerX, spinnerY))
+        Trajectory ducks = drive.trajectoryBuilder(drive.getPoseEstimate()) //Reverse is questionable
+                .strafeTo(new Vector2d(back, toSpin))
                 .build();
-        drive.followTrajectory(backup);
+        drive.followTrajectory(ducks);
 
         drive.slides.setTargetPosition((int) slideTicks);
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
 
-        drive.spinner.setPower(0.5);
-        sleep(2000);
+        drive.spinner.setPower(0.6);
+        sleep(2500);
         drive.spinner.setPower(0);
 
-        Pose2d temp = drive.getPoseEstimate();
-        drive.setPoseEstimate(new Pose2d(temp.getX(), temp.getY(), 0));
-
-        Trajectory back = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(pastBarCode)
+        Trajectory straf = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .back(strafe)
                 .build();
-        drive.followTrajectory(back);
+        drive.followTrajectory(straf);
 
-        drive.turn(Math.toRadians(-85));
+        drive.turn(Math.toRadians(-89));
+
         drive.dropper.setPosition(HALF);
-        sleep(300);
 
         Trajectory hub = drive.trajectoryBuilder(drive.getPoseEstimate())
                 .back(toHub)
@@ -114,7 +112,7 @@ public class FreightRedPathDucks extends LinearOpMode {
         sleep(600);
 
         Trajectory toWall = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .forward(toHub + 2)
+                .forward(toHub + 3)
                 .build();
         drive.followTrajectory(toWall);
 
@@ -311,15 +309,17 @@ public class FreightRedPathDucks extends LinearOpMode {
             color3 /= sampleWidth * sampleHeight;
 
             boolean leftDuck = color1 > thresh;
-            boolean midDuck = color2 > thresh;
+            boolean midDuck = color2 > thresh; // midDuck doesn't matter
             boolean rightDuck = color3 > thresh;
 
             System.out.println("Color1: " + color1 + ", Color2: " + color2 + "Color3: " + color3);
 
-            if(leftDuck && !midDuck && !rightDuck) duckLocation = 0;
-            else if(!leftDuck && midDuck && !rightDuck) duckLocation = 1;
-            else if(!leftDuck && !midDuck && rightDuck) duckLocation = 2;
+            if(!leftDuck && !rightDuck) duckLocation = 2;
+            else if(leftDuck && !rightDuck) duckLocation = 0;
+            else if(!leftDuck && rightDuck) duckLocation = 1;
             else duckLocation = -1;
+
+            System.out.println(duckLocation);
 
             Imgproc.rectangle(ExtractMat, leftUL, new Point(leftUL.x + sampleWidth, leftUL.y + sampleHeight), leftDuck ? new Scalar(0, 255, 0) : new Scalar(255, 0, 0));
             Imgproc.rectangle(ExtractMat, middleUL, new Point(middleUL.x + sampleWidth, middleUL.y + sampleHeight), midDuck ? new Scalar(0, 255, 0) : new Scalar(255, 0, 0));

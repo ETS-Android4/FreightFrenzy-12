@@ -40,7 +40,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightBluePathWarehouse extends LinearOpMode {
 
-    public static double back = 40, toHub = 6, toWall = 47, park = 32, scor = 3;
+    public static double back = 40, toHub = 6, toWall = 47, park = 36, scor = 4;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 
@@ -78,6 +78,8 @@ public class FreightBluePathWarehouse extends LinearOpMode {
             telemetry.update();
         }
         drive.slides.setPower(0);
+        drive.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        drive.slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         waitForStart();
         if(isStopRequested()) return;
@@ -129,21 +131,35 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.preingest.setPower(0.8);
 
         Trajectory toPark = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .forward(park+5)
+                .forward(park)
                 .build();
         drive.followTrajectory(toPark);
 
         Trajectory extraPush = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .forward(6)
+                .forward(3)
                 .build();
         drive.followTrajectory(extraPush);
 
+        sleep(500);
+
+        drive.preingest.setPower(-1);
+        drive.ingester.setPower(1);
+
+        drive.setMotorPowers(-1, -1, -1, -1);
+        sleep(200);
+        drive.setMotorPowers(1, 1, 1, 1);
+        sleep(400);
+        drive.setMotorPowers(-1, -1, -1, -1);
+        sleep(200);
+        drive.setMotorPowers(0, 0, 0, 0);
+
+        Trajectory walll = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .strafeLeft(4)
+                .build();
+        drive.followTrajectory(walll);
+
         Trajectory back = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .addTemporalMarker(1, () -> {
-                    drive.preingest.setPower(-1);
-                    drive.ingester.setPower(-1);
-                })
-                .back(park + 12)
+                .back(park + 5)
                 .build();
         drive.followTrajectory(back);
 
