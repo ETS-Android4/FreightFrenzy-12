@@ -31,7 +31,7 @@ public class GasDriveConstants {
      * If using the built-in motor velocity PID, update MOTOR_VELO_PID with the tuned coefficients
      * from DriveVelocityPIDTuner.
      */
-    public static final boolean RUN_USING_ENCODER = false; //CHANGE THIS BACK FOR QUAL
+    public static final boolean RUN_USING_ENCODER = true; //CHANGE THIS BACK FOR QUAL
     public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(30, 0, 12,12);
 
     /*
@@ -64,9 +64,9 @@ public class GasDriveConstants {
      * inches.
      */
     public static double MAX_VEL = 80;
-    public static double MAX_ACCEL = 50;
-    public static double MAX_ANG_VEL = Math.toRadians(360);
-    public static double MAX_ANG_ACCEL = Math.toRadians(180);
+    public static double MAX_ACCEL = 65;
+    public static double MAX_ANG_VEL = Math.toRadians(270);
+    public static double MAX_ANG_ACCEL = Math.toRadians(120);
 
 
     public static double encoderTicksToInches(double ticks) {

@@ -135,6 +135,7 @@ public class ThreadedMotor implements Active, DcMotor {
 
     public void setZeroPowerBehavior(ZeroPowerBehavior behavior){
         zpb = behavior;
+        change = true;
     }
 
     @Override

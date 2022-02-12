@@ -10,6 +10,7 @@ import com.google.gson.internal.$Gson$Preconditions;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
@@ -29,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.firstinspires.ftc.teamcode.Vision.HubVisionPipeline.hubScanPipeline;
 
 @Config
-//@TeleOp(name="RRTeleOp")
+@TeleOp(name="RRTeleOp")
 public class RRTeleOp extends LinearOpMode {
 
     RoadRunnerConfiguration config;
@@ -43,9 +44,9 @@ public class RRTeleOp extends LinearOpMode {
 
     public static double sensorSideOffset = 0, sensorStrightOffset = 0;
 
-    public static double p = 0.00009, targetX = 150, yPow = 1, maximumHubWidth = 130, startingSlowDownWidth = 80, slowDownFactorDenominator = 10;
+    public static double p = 0.0003, targetX = 230, yPow = 0.8, maximumHubWidth = 155, imuP = 0.8;
 
-    public static double OPEN = 0.02, CLOSE = 0.69, FLIPDOWN = 1, x = 30, y = 24, a = 53; //0.23 dropper position to for auto lowest level
+    public static double OPEN = 0.02, CLOSE = 0.72, FLIPDOWN = 1, x = -32, y = 24, b = 36, a = 60, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
 
     public static int[] levels = {0, 660, 1800, 2500};
 
@@ -62,6 +63,10 @@ public class RRTeleOp extends LinearOpMode {
     Thread waitThread, dumpThread, testThread, hubThread;
 
     HardwareThread hardware;
+
+    double ingesterSpeed, lastHeading, lastTime = 0;
+
+    ElapsedTime timeout;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -91,20 +96,26 @@ public class RRTeleOp extends LinearOpMode {
         gain.setGain(g);
         exposure.setExposure(exp, TimeUnit.MILLISECONDS);
 
-        double lastHeading = 0, ingesterSpeed = 0;
+        lastHeading = 0;
+        ingesterSpeed = 0;
 
         config.imu.gettingInput = true;
 
-        //sleep(200);
+        sleep(200);
 
-        //config.slides.setPower(-0.5);
-        //while(!isStopRequested() && config.limit.get()[0] == 0) {}
-        //config.slides.setPower(0);
+        config.slides.setPower(-0.5);
+        while(!isStopRequested() && config.limit.get()[0] == 0) {}
+        config.slides.setPower(0);
 
         slidesOffset = (int) config.slides.get()[1];
 
         config.slides.setTargetPosition(slidesOffset);
         config.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        while(!isStopRequested() && !isStarted()) {
+            telemetry.addData("Limit: ", config.limit.get()[0]);
+            telemetry.update();
+        }
 
         waitForStart();
 
@@ -123,25 +134,51 @@ public class RRTeleOp extends LinearOpMode {
         dumpThread = new Thread(dump);
 
         Sequence forward = new Sequence(() -> {
-            config.turn(-imuHeading);
-            config.setPoseEstimate(new Pose2d(2 - config.front.get()[0], 0));
+            ingesterSpeed = -1;
+            imuTurn(0);
+            currentLevel = 3;
+            config.dropper.set(0.50);
+            double front = config.front.get()[0];
+            timeout = new ElapsedTime();
+            while(front > 36 && timeout.seconds() < 2) {
+                HardwareThread.waitForCycle();
+                front = config.front.get()[0];
+            }
+            if(timeout.seconds() >= 2) return;
+            config.setPoseEstimate(new Pose2d(2 - front, config.getPoseEstimate().getY()));
+            System.out.println(config.getPoseEstimate());
             Trajectory traj = config.trajectoryBuilder(config.getPoseEstimate())
-                    .strafeTo(new Vector2d(-x, y))
+                    .strafeTo(new Vector2d(x, 0))
                     .build();
             config.followTrajectory(traj);
 
+            ingesterSpeed = 0;
+
             Trajectory traj2 = config.trajectoryBuilder(config.getPoseEstimate())
-                    .back(y)
+                    .back(b)
                     .build();
             config.followTrajectory(traj2);
 
-            config.turn(Math.toRadians(a));
+            imuTurn(Math.toRadians(a));
         });
         testThread = new Thread(forward);
 
         Sequence turnToHub = new Sequence(() -> {
-            double power = 1;
+            double power;
             double x = HubVisionPipeline.getCenterPointHub().x;
+            timeout = new ElapsedTime();
+            while(x == -1 && timeout.seconds() < 3) {
+                HardwareThread.waitForCycle();
+                setPower(0, 0, -0.1);
+                x = HubVisionPipeline.getCenterPointHub().x;
+            }
+            if(timeout.seconds() >= 3) {
+                lastTime = 4;
+                return;
+            }
+
+            lastTime = timeout.seconds();
+
             double yPower = -0.4;
             double initialW = HubVisionPipeline.width;
             while(HubVisionPipeline.width < (maximumHubWidth-15) && x != -1 && yPower < 0) {
@@ -149,15 +186,44 @@ public class RRTeleOp extends LinearOpMode {
                 double inputW = HubVisionPipeline.width;
                 power = p * (targetX - x);
                 double slowDownFactor = Math.max(Math.pow((maximumHubWidth - inputW), 2) / Math.pow((maximumHubWidth - initialW), 2), 0);
-                yPower = -slowDownFactor*yPow;
-                //yPower = Math.min(Math.abs(power) - slowDownFactor*yPow, 0);
+                yPower = Math.min(-slowDownFactor * yPow - 0.1 + Math.abs(power), 0);
                 setPower(0, yPower, power);
                 x = HubVisionPipeline.getCenterPointHub().x;
-                System.out.println("This piece of shit has a power of " + power + " and an x of " + x);
             }
             setPower(0, 0, 0);
+            config.dropper.set(OPEN);
+            sleep(650);
+            config.dropper.set(CLOSE);
+            currentLevel = 0;
         }, forward);
-        hubThread = new Thread(turnToHub);
+
+        Sequence toWarehouse = new Sequence(() -> {
+
+            if(lastTime >= 3) return;
+
+            Trajectory back = config.trajectoryBuilder(config.getPoseEstimate())
+                    .forward(3)
+                    .build();
+            config.followTrajectory(back);
+
+            imuTurn(0);
+
+            double y = config.getPoseEstimate().getY();
+
+            Trajectory fromHub = config.trajectoryBuilder(config.getPoseEstimate())
+                    .strafeLeft(y + y > 0 ? 2 : -2)
+                    .build();
+            config.followTrajectory(fromHub);
+
+            Trajectory toWare = config.trajectoryBuilder(config.getPoseEstimate())
+                    .forward(hubX)
+                    .build();
+            config.followTrajectory(toWare);
+
+            ingesterSpeed = 1;
+
+        }, turnToHub);
+        hubThread = new Thread(toWarehouse);
 
         while(!isStopRequested()) {
 
@@ -177,7 +243,7 @@ public class RRTeleOp extends LinearOpMode {
             else if(gamepad1.y || gamepad2.y) ingesterSpeed = -1;
             else if(gamepad1.back || gamepad2.back) ingesterSpeed = 0;
 
-            //if(gamepad1.left_stick_button && !hubThread.isAlive()) hubThread.start();
+            if(gamepad1.left_stick_button && !hubThread.isAlive()) hubThread.start();
 
             imuHeading = config.imu.get()[0];
             double tempHeading = imuHeading;
@@ -233,17 +299,21 @@ public class RRTeleOp extends LinearOpMode {
             double speed = gamepad1.right_bumper ? 0.3 : 1;
             double x = 0.6 * -gamepad1.left_trigger + 0.6 * gamepad1.right_trigger + gamepad1.left_stick_x, y = gamepad1.left_stick_y, a = gamepad1.right_stick_x;
 
-            //if(gamepad1.dpad_left && !testThread.isAlive()) testThread.start();
+            if(gamepad1.dpad_left && !testThread.isAlive()) testThread.start();
 
             if(!testThread.isAlive() && !hubThread.isAlive()) setPower(speed * x, -speed * y, speed * a + power);
 
-            if(gamepad2.start) config.imu.resetIMU();
+            if(gamepad2.start) {
+                config.imu.resetIMU();
+                config.setPoseEstimate(new Pose2d(0, 0));
+            }
 
             telemetry.addData("Heading: ", imuHeading);
             telemetry.addData("Power: ", config.backLeft.get()[0]);
             telemetry.addData("Width: ", HubVisionPipeline.width);
             telemetry.addData("Distance: ", config.front.get()[0]);
             telemetry.addData("HubCenterPoint: ", HubVisionPipeline.getCenterPointHub().x);
+            telemetry.addData("Current Position: ", config.getPoseEstimate());
             //telemetry.addData("Last Heading: ", lastHeading);
             telemetry.addData("Level: ", currentLevel);
             telemetry.addData("Slide Height: ", tempPos);
@@ -256,6 +326,23 @@ public class RRTeleOp extends LinearOpMode {
         }
 
         hardware.Stop();
+    }
+
+    public void imuTurn(double targetAngle) {
+        //Angles in radians
+        double power = 0.2;
+        while(Math.abs(power) > 0.03) {
+            double tempHeading = imuHeading;
+            if (tempHeading < 0) tempHeading += 2 * Math.PI;
+            if (targetAngle < 0) targetAngle += 2 * Math.PI;
+            double invert = targetAngle - imuHeading;
+            if (invert > Math.PI) invert -= 2 * Math.PI;
+            else if (invert < -Math.PI) invert += 2 * Math.PI;
+            invert = invert < 0 ? 1 : -1;
+            power = invert * imuP * (Math.abs(tempHeading - targetAngle) > Math.PI ? (Math.abs(tempHeading > Math.PI ? 2 * Math.PI - tempHeading : tempHeading) + Math.abs(targetAngle > Math.PI ? 2 * Math.PI - targetAngle : targetAngle)) : Math.abs(tempHeading - targetAngle));
+            setPower(0, 0, power);
+        }
+        setPower(0, 0, 0);
     }
 
     public Pose2d warehouseSensorPose() {
