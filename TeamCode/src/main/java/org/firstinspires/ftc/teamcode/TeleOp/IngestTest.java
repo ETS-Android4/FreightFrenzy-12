@@ -38,6 +38,7 @@ public class IngestTest extends LinearOpMode {
                 }
                 if(time.milliseconds() < durationMilli) config.motor.setPower(rampF + rampP * time.milliseconds());
                 else config.motor.setPower(0);
+                telemetry.addLine("Encoder position: " + config.motor.getCurrentPosition());
             }
             //if(servoOn) config.servo.setPosition(pos);
         }

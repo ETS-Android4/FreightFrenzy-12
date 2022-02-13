@@ -40,7 +40,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightBluePathWarehouse extends LinearOpMode {
 
-    public static double back = 40, toHub = 6, toWall = 47, park = 36, scor = 4;
+    public static double back = 32, toHub = 6, toWall = 47, park = 37, scor = 4;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 
@@ -48,7 +48,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
 
     public static int leftX = 5, middleX = 100, rightX = 260, allY = 195;
 
-    public static double level1 = 660, level2 = 2000, sensorSideOffset, sensorStrightOffset;
+    public static double level1 = 660, level2 = 2400, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.65, HALF = 0.21;
 
@@ -81,6 +81,11 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         drive.slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        while(!isStarted() && !isStopRequested()) {
+            telemetry.addData("Duck Location: ", duckLocation);
+            telemetry.update();
+        }
+
         waitForStart();
         if(isStopRequested()) return;
 
@@ -97,12 +102,17 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
 
-        Trajectory backup = drive.trajectoryBuilder(startPose)
-                .back(back)
+        Trajectory offWall = drive.trajectoryBuilder(startPose)
+                .back(8)
                 .build();
-        drive.followTrajectory(backup);
+        drive.followTrajectory(offWall);
 
         drive.turn(Math.toRadians(-90));
+
+        Trajectory backup = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .strafeRight(back)
+                .build();
+        drive.followTrajectory(backup);
 
         drive.dropper.setPosition(HALF);
         sleep(300);
@@ -145,21 +155,13 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.preingest.setPower(-1);
         drive.ingester.setPower(1);
 
-        drive.setMotorPowers(-1, -1, -1, -1);
-        sleep(200);
-        drive.setMotorPowers(1, 1, 1, 1);
-        sleep(400);
-        drive.setMotorPowers(-1, -1, -1, -1);
-        sleep(200);
-        drive.setMotorPowers(0, 0, 0, 0);
-
         Trajectory walll = drive.trajectoryBuilder(drive.getPoseEstimate())
                 .strafeLeft(4)
                 .build();
         drive.followTrajectory(walll);
 
         Trajectory back = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(park + 5)
+                .back(park + 3)
                 .build();
         drive.followTrajectory(back);
 
@@ -192,7 +194,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.slides.setPower(-0.8);
 
         Trajectory parc = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .forward(park)
+                .forward(park + 1)
                 .build();
         drive.followTrajectory(parc);
     }

@@ -39,7 +39,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightRedPathDucks extends LinearOpMode {
 
-    public static double back = -5, toSpin = -15, strafe = 35, toHub = 27, park = 17;
+    public static double back = -5, toSpin = -15.5, strafe = 35, toHub = 27, park = 16;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 

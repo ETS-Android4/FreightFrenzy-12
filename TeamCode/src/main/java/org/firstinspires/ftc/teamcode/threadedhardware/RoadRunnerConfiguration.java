@@ -145,7 +145,7 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         slides.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        spinner.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        spinner.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         ingest.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         preIngest.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         spinner.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

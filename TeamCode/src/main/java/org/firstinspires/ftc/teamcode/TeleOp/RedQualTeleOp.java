@@ -42,7 +42,7 @@ public class RedQualTeleOp extends LinearOpMode {
 
     public static double p = 0.0003, targetX = 115, yPow = 0.8, yConst = -0.02, xPow = 0.6, maximumHubWidth = 145, imuP = 0.5;
 
-    public static double durationMilli = 1500, rampP = -0.00075, rampF = -0.3;
+    public static double durationMilli = 2000, rampP = -0.0006, rampF = -0.2;
 
     public static double OPEN = 0.02, CLOSE = 0.72, FLIPDOWN = 1, x = -22, y = 24, b = 31, a = -50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
 
