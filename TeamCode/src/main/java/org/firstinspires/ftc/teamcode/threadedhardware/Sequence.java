@@ -42,8 +42,8 @@ public class Sequence implements Runnable {
         } else {
             actionThread.run();
         }
-        while((conditionThread == null || conditionThread.isAlive()) && actionThread.isAlive()){
-            HardwareThread.waitForCycle();
-        }
+        while((conditionThread == null || conditionThread.isAlive()) && actionThread.isAlive()) {}
+        if(actionThread.isAlive()) actionThread.stop();
+        if(conditionThread != null && conditionThread.isAlive()) conditionThread.stop();
     }
 }

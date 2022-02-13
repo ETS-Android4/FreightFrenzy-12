@@ -2,11 +2,10 @@ package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
-import com.google.gson.internal.$Gson$Preconditions;
+import com.acmerobotics.roadrunner.trajectory.constraints.MecanumVelocityConstraint;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -16,11 +15,9 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.teamcode.Vision.HubVisionPipeline;
-import org.firstinspires.ftc.teamcode.Vision.HubVisionPipelineBlue;
-import org.firstinspires.ftc.teamcode.threadedhardware.Hardware;
+import org.firstinspires.ftc.teamcode.Vision.HubVisionPipeline;
 import org.firstinspires.ftc.teamcode.threadedhardware.HardwareThread;
 import org.firstinspires.ftc.teamcode.threadedhardware.RoadRunnerConfiguration;
-import org.firstinspires.ftc.teamcode.threadedhardware.SampleConfiguration;
 import org.firstinspires.ftc.teamcode.threadedhardware.Sequence;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
@@ -28,20 +25,14 @@ import org.openftc.easyopencv.OpenCvWebcam;
 
 import java.util.concurrent.TimeUnit;
 
-import org.firstinspires.ftc.teamcode.Vision.HubVisionPipeline.hubScanPipeline;
-
-import static org.firstinspires.ftc.teamcode.TeleOp.IngestTest.durationMilli;
-import static org.firstinspires.ftc.teamcode.TeleOp.IngestTest.rampF;
-import static org.firstinspires.ftc.teamcode.TeleOp.IngestTest.rampP;
-
 @Config
-@TeleOp(name="RRTeleOp")
-public class RRTeleOp extends LinearOpMode {
+@TeleOp
+public class RedQualTeleOp extends LinearOpMode {
 
     RoadRunnerConfiguration config;
 
-    public final int rows = 640;
-    public final int cols = 480;
+    public final int rows = 320;
+    public final int cols = 240;
     public static int g;
     public static int exp;
 
@@ -49,21 +40,21 @@ public class RRTeleOp extends LinearOpMode {
 
     public static double sensorSideOffset = 0, sensorStrightOffset = 0;
 
-    public static double p = 0.0003, targetX = 230, yPow = 0.8, maximumHubWidth = 145, imuP = 0.5;
+    public static double p = 0.0003, targetX = 115, yPow = 0.8, yConst = -0.02, xPow = 0.6, maximumHubWidth = 145, imuP = 0.5;
 
     public static double durationMilli = 1500, rampP = -0.00075, rampF = -0.3;
 
-    public static double OPEN = 0.02, CLOSE = 0.72, FLIPDOWN = 1, x = -28, y = 24, b = 36, a = 50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
+    public static double OPEN = 0.02, CLOSE = 0.72, FLIPDOWN = 1, x = -22, y = 24, b = 31, a = -50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
 
-    public static int[] levels = {0, 660, 1800, 2500};
+    public static int[] levels = {0, 660, 1800, 2250, 2500};
 
     private int currentLevel = 0;
 
-    public boolean levelPressed = false;
+    public boolean levelPressed = false, manual = false;
 
     public int slidesOffset = 0;
 
-    private double imuHeading = 0;
+    private double imuHeading = 0, power = 0;
 
     OpenCvWebcam webCam;
 
@@ -89,7 +80,7 @@ public class RRTeleOp extends LinearOpMode {
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam2"), cameraMonitorViewId);
         webCam.openCameraDevice();//open camera
-        webCam.setPipeline(new HubVisionPipelineBlue.hubScanPipeline());
+        webCam.setPipeline(new HubVisionPipeline.hubScanPipeline());
         webCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
         FtcDashboard.getInstance().startCameraStream(webCam, 0);
 
@@ -127,6 +118,8 @@ public class RRTeleOp extends LinearOpMode {
             telemetry.update();
         }
 
+        config.dropper.set(CLOSE);
+
         waitForStart();
 
         Sequence waitMillis = new Sequence(() -> {
@@ -145,24 +138,29 @@ public class RRTeleOp extends LinearOpMode {
 
         Sequence forward = new Sequence(() -> {
             ingesterSpeed = -1;
-            imuTurn(0);
             currentLevel = 3;
-            config.dropper.set(0.50);
+            imuTurn(0);
+            config.dropper.set(0.52);
             double front = config.front.get()[0];
             timeout = new ElapsedTime();
-            while(front > 36 && timeout.seconds() < 2) {
+            while(front > 36 && timeout.seconds() < 2 && !manual) {
                 HardwareThread.waitForCycle();
                 front = config.front.get()[0];
             }
-            if(timeout.seconds() >= 2) return;
+            if(timeout.seconds() >= 2 || manual) {
+                lastTime = 3;
+                return;
+            }
             config.setPoseEstimate(new Pose2d(2 - front, config.getPoseEstimate().getY()));
-            System.out.println(config.getPoseEstimate());
             Trajectory traj = config.trajectoryBuilder(config.getPoseEstimate())
-                    .strafeTo(new Vector2d(x, 6))
+                    .strafeTo(new Vector2d(x, -4))
                     .build();
             config.followTrajectory(traj);
 
-            ingesterSpeed = 0;
+            if(manual) {
+                lastTime = 3;
+                return;
+            }
 
             config.setPoseEstimate(new Pose2d(0, 0));
 
@@ -171,185 +169,173 @@ public class RRTeleOp extends LinearOpMode {
                     .build();
             config.followTrajectory(traj2);
 
-            imuTurn(Math.toRadians(a));
-
-            System.out.println();
+            ingesterSpeed = 0;
         });
-        testThread = new Thread(forward);
 
-        Sequence turnToHub = new Sequence(() -> {
-            double power;
-            double x = HubVisionPipelineBlue.getCenterPointHub().x;
-            ElapsedTime time = new ElapsedTime();
-            while(x == -1 && time.seconds() < 5) {
-                setPower(0, 0, -0.15);
-                x = HubVisionPipelineBlue.getCenterPointHub().x;
+        Sequence strafeToHub = new Sequence(() -> {
+            try {
+                if (lastTime >= 3 || manual) {
+                    lastTime = 0;
+                    return;
+                }
+
+                double x = HubVisionPipeline.getCenterPointHub().x;
+
+                lastHeading = imuHeading;
+
+                while ((x == -1 || HubVisionPipeline.width < 30) && !manual) {
+                    x = HubVisionPipeline.getCenterPointHub().x;
+                    setPower(-xPow, yConst, power);
+                }
+                setPower(0, 0, 0);
+
+                if (manual) return;
+
+                Trajectory toHub = config.trajectoryBuilder(config.getPoseEstimate())
+                        .back(6)
+                        .build();
+                config.followTrajectory(toHub);
+
+                if (manual) return;
+
+                config.dropper.set(OPEN);
+                sleep(650);
+                config.dropper.set(CLOSE);
+                currentLevel = 0;
+
+                Trajectory toWall = config.trajectoryBuilder(config.getPoseEstimate())
+                        .strafeTo(new Vector2d(config.getPoseEstimate().getX(), -4))
+                        .build();
+                config.followTrajectory(toWall);
+
+                if (manual) return;
+
+                config.setPoseEstimate(new Pose2d(0, 0));
+
+                Trajectory toWare = config.trajectoryBuilder(config.getPoseEstimate())
+                        .forward(b)
+                        .build();
+                config.followTrajectory(toWare);
+
+                ingesterSpeed = 1;
+            } catch(Exception e) {
+                System.out.println("Exception " + e + " in strafeToHub.");
             }
-
-            if(time.seconds() >= 5) {
-                lastTime = 6;
-                System.out.println("Returning");
-                return;
-            }
-
-            lastTime = time.seconds();
-
-            double yPower = -0.4;
-            double initialW = HubVisionPipelineBlue.width;
-            while(HubVisionPipelineBlue.width < (maximumHubWidth-15) && x != -1 && yPower < 0) {
-                HardwareThread.waitForCycle();
-                double inputW = HubVisionPipeline.width;
-                power = p * (targetX - x);
-                double slowDownFactor = Math.max(Math.pow((maximumHubWidth - inputW), 2) / Math.pow((maximumHubWidth - initialW), 2), 0);
-                yPower = Math.min(-slowDownFactor * yPow - 0.1 + Math.abs(power), 0);
-                setPower(0, yPower, power);
-                x = HubVisionPipelineBlue.getCenterPointHub().x;
-            }
-            setPower(0, 0, 0);
-            config.dropper.set(OPEN);
-            sleep(650);
-            config.dropper.set(CLOSE);
-            currentLevel = 0;
         }, forward);
-
-        Sequence toWarehouse = new Sequence(() -> {
-
-            if(lastTime >= 5) return;
-
-            Trajectory back = config.trajectoryBuilder(config.getPoseEstimate())
-                    .forward(3)
-                    .build();
-            config.followTrajectory(back);
-
-            imuTurn(0);
-
-            Pose2d cur = config.getPoseEstimate();
-
-            Trajectory fromHub = config.trajectoryBuilder(config.getPoseEstimate())
-                    .strafeTo(new Vector2d(cur.getX(), 8))
-                    .build();
-            config.followTrajectory(fromHub);
-
-            Trajectory toWare = config.trajectoryBuilder(config.getPoseEstimate())
-                    .forward(hubX)
-                    .build();
-            config.followTrajectory(toWare);
-
-            config.setPoseEstimate(new Pose2d(0, 0));
-
-            ingesterSpeed = 1;
-
-        }, turnToHub);
-        hubThread = new Thread(toWarehouse);
+        testThread = new Thread(strafeToHub);
 
         while(!isStopRequested()) {
 
             try {
                 hardware.waitForCycle();
+
+                config.ingest.setPower(-ingesterSpeed);
+                config.spinner.setPower(gamepad2.left_stick_y);
+                config.preIngest.setPower(ingesterSpeed * 0.6);
+
+                if (gamepad1.back) config.flipdown.set(FLIPDOWN);
+
+                if (gamepad1.a || gamepad2.a) ingesterSpeed = 1;
+                else if (gamepad1.y || gamepad2.y) ingesterSpeed = -1;
+                else if (gamepad1.back || gamepad2.back) ingesterSpeed = 0;
+
+                imuHeading = config.imu.get()[0];
+                double tempHeading = imuHeading;
+                double tempTarget = lastHeading;
+                if (tempHeading < 0) tempHeading += 2 * Math.PI;
+                if (lastHeading < 0) tempTarget += 2 * Math.PI;
+                double invert = lastHeading - imuHeading;
+                if (invert > Math.PI) invert -= 2 * Math.PI;
+                else if (invert < -Math.PI) invert += 2 * Math.PI;
+                invert = invert < 0 ? 1 : -1;
+                power = invert * 1.2 * (Math.abs(tempHeading - tempTarget) > Math.PI ? (
+                        Math.abs(tempHeading > Math.PI ? 2 * Math.PI - tempHeading : tempHeading) +
+                                Math.abs(tempTarget > Math.PI ?
+                                        2 * Math.PI - tempTarget : tempTarget)) : Math
+                        .abs(tempHeading -
+                                tempTarget)); //Long line, but the gist is if you're calculating speed in the wrong direction, git gud.
+                if (Math.abs(power) < 0.05) power *= 0.5;
+                if (Math.abs(gamepad1.right_stick_x) > 0.1) turning = true;
+
+                else if (turning && !waitThread.isAlive()) waitThread.start();
+
+                //config.slides.setPower(gamepad2.left_stick_y);
+                if ((gamepad1.dpad_up || gamepad2.dpad_up) && !levelPressed) {
+                    currentLevel += currentLevel < levels.length - 1 ? 1 : 0;
+                    levelPressed = true;
+                } else if ((gamepad1.dpad_down || gamepad2.dpad_down) && !levelPressed) {
+                    currentLevel -= currentLevel > 0 ? 1 : 0;
+                    levelPressed = true;
+                } else if (!gamepad1.dpad_down && !gamepad1.dpad_up && !gamepad2.dpad_down &&
+                        !gamepad2.dpad_up) levelPressed = false;
+
+                double tempPos = config.slides.get()[1] + slidesOffset;
+
+                //double pow = tempPos > levels[currentLevel] ? -1 : 1;
+
+                //if(Math.abs(tempPos - levels[currentLevel]) < 150 || (pow == -1 && config.limit.get()[0] == 1)) pow = 0;
+                //if(Math.abs(tempPos - levels[currentLevel]) < 150) pow = 0.001;
+
+                //config.slides.setPower((!gamepad2.left_bumper ? pow : (config.limit.get()[0] != 1 || gamepad2.right_stick_y > 0) ? gamepad2.right_stick_y : 0));
+                //double pow1 = Math.abs(gamepad2.right_stick_y) < 0.3 ? 0 : gamepad2.right_stick_y;
+                //if((tempPos <= 0 && pow1 < 0) || config.limit.get()[0] == 1) pow1 = 0;
+
+                config.slides.setTargetPosition(levels[currentLevel] + slidesOffset);
+                config.slides.setPower(1);
+
+                if (turning || gamepad1.left_trigger > 0.3 || gamepad1.right_trigger > 0.3) {
+                    lastHeading = imuHeading;
+                    power = 0;
+                }
+
+                if (gamepad2.left_stick_button && ducktime.milliseconds() > durationMilli) {
+                    ducktime.reset();
+                }
+                if (ducktime.milliseconds() < durationMilli)
+                    config.spinner.setPower(-(rampF + rampP * ducktime.milliseconds()));
+                else config.spinner.setPower(0);
+
+                if (dumpThread.isAlive()) ;
+                else if (gamepad1.start) dumpThread.start();
+                else if (gamepad1.x) config.dropper.set(CLOSE);
+                else if (gamepad1.b) config.dropper.set(OPEN);
+
+                double speed = gamepad1.right_bumper ? 0.3 : 1;
+                double x = 0.6 * -gamepad1.left_trigger + 0.6 * gamepad1.right_trigger +
+                        gamepad1.left_stick_x, y = gamepad1.left_stick_y, a =
+                        gamepad1.right_stick_x;
+
+                if (gamepad1.dpad_left && !testThread.isAlive()) testThread.start();
+
+                if (!testThread.isAlive()) setPower(speed * x, -speed * y, speed * a);
+
+                if (gamepad2.start) {
+                    config.imu.resetIMU();
+                    config.setPoseEstimate(new Pose2d(0, 0));
+                }
+
+                manual = gamepad2.left_bumper;
+
+                telemetry.addData("Heading: ", imuHeading);
+                telemetry.addData("Power: ", config.backLeft.get()[0]);
+                telemetry.addData("Width: ", HubVisionPipeline.width);
+                telemetry.addData("Distance: ", config.front.get()[0]);
+                telemetry.addData("HubCenterPoint: ", HubVisionPipeline.getCenterPointHub().x);
+                telemetry.addData("Current Position: ", config.getPoseEstimate());
+                //telemetry.addData("Last Heading: ", lastHeading);
+                telemetry.addData("Level: ", currentLevel);
+                telemetry.addData("Slide Height: ", tempPos);
+                //telemetry.addData("Drivetrain Current Draw: ");
+                telemetry.addData("Limit: ", config.limit.get()[0]);
+                // telemetry.addData("Expected Height: ", levels[currentLevel]);
+                //telemetry.addData("Limit: ", config.limit.get()[0]);
+                //telemetry.addData("Expected Height: ", levels[currentLevel]);
+                telemetry.update();
+
+                config.update();
             } catch(Exception e) {
                 System.out.println("Exception " + e);
             }
-
-            config.ingest.setPower(-ingesterSpeed);
-            config.spinner.setPower(gamepad2.left_stick_y);
-            config.preIngest.setPower(ingesterSpeed * 0.6);
-
-            if(gamepad1.back) config.flipdown.set(FLIPDOWN);
-
-            if(gamepad1.a || gamepad2.a) ingesterSpeed = 1;
-            else if(gamepad1.y || gamepad2.y) ingesterSpeed = -1;
-            else if(gamepad1.back || gamepad2.back) ingesterSpeed = 0;
-
-            if(gamepad1.left_stick_button && !hubThread.isAlive()) hubThread.start();
-
-            imuHeading = config.imu.get()[0];
-            double tempHeading = imuHeading;
-            double tempTarget = lastHeading;
-            if(tempHeading < 0) tempHeading += 2 * Math.PI;
-            if(lastHeading < 0) tempTarget += 2 * Math.PI;
-            double invert = lastHeading - imuHeading;
-            if(invert > Math.PI) invert -= 2 * Math.PI;
-            else if(invert < -Math.PI) invert += 2 * Math.PI;
-            invert = invert < 0 ? 1 : -1;
-            double power = invert * 0.8 * (Math.abs(tempHeading - tempTarget) > Math.PI ? (Math.abs(tempHeading > Math.PI ? 2 * Math.PI - tempHeading : tempHeading) + Math.abs(tempTarget > Math.PI ? 2 * Math.PI - tempTarget : tempTarget)) : Math.abs(tempHeading - tempTarget)); //Long line, but the gist is if you're calculating speed in the wrong direction, git gud.
-            if(Math.abs(power) < 0.05) power *= 0.5;
-            power = 0;
-            if(Math.abs(gamepad1.right_stick_x) > 0.1) turning = true;
-
-            else if(turning && !waitThread.isAlive()) waitThread.start();
-
-            //config.slides.setPower(gamepad2.left_stick_y);
-            if((gamepad1.dpad_up || gamepad2.dpad_up) && !levelPressed) {
-                currentLevel += currentLevel < 3 ? 1 : 0;
-                levelPressed = true;
-            }
-            else if((gamepad1.dpad_down || gamepad2.dpad_down) && !levelPressed) {
-                currentLevel -= currentLevel > 0 ? 1 : 0;
-                levelPressed = true;
-            }
-            else if(!gamepad1.dpad_down && !gamepad1.dpad_up && !gamepad2.dpad_down && !gamepad2.dpad_up) levelPressed = false;
-
-            double tempPos = config.slides.get()[1] + slidesOffset;
-
-            //double pow = tempPos > levels[currentLevel] ? -1 : 1;
-
-            //if(Math.abs(tempPos - levels[currentLevel]) < 150 || (pow == -1 && config.limit.get()[0] == 1)) pow = 0;
-            //if(Math.abs(tempPos - levels[currentLevel]) < 150) pow = 0.001;
-
-            //config.slides.setPower((!gamepad2.left_bumper ? pow : (config.limit.get()[0] != 1 || gamepad2.right_stick_y > 0) ? gamepad2.right_stick_y : 0));
-            //double pow1 = Math.abs(gamepad2.right_stick_y) < 0.3 ? 0 : gamepad2.right_stick_y;
-            //if((tempPos <= 0 && pow1 < 0) || config.limit.get()[0] == 1) pow1 = 0;
-
-            config.slides.setTargetPosition(levels[currentLevel] + slidesOffset);
-            config.slides.setPower(1);
-
-            if(turning || gamepad1.left_trigger > 0.3 || gamepad1.right_trigger > 0.3) {
-                lastHeading = imuHeading;
-                power = 0;
-            }
-
-
-
-            if(gamepad2.left_stick_button && ducktime.milliseconds() > durationMilli){
-                ducktime.reset();
-            }
-            if(ducktime.milliseconds() < durationMilli) config.spinner.setPower(rampF + rampP * ducktime.milliseconds());
-            else config.spinner.setPower(0);
-
-            if(dumpThread.isAlive());
-            else if(gamepad1.start) dumpThread.start();
-            else if(gamepad1.x) config.dropper.set(CLOSE);
-            else if(gamepad1.b) config.dropper.set(OPEN);
-
-            double speed = gamepad1.right_bumper ? 0.3 : 1;
-            double x = 0.6 * -gamepad1.left_trigger + 0.6 * gamepad1.right_trigger + gamepad1.left_stick_x, y = gamepad1.left_stick_y, a = gamepad1.right_stick_x;
-
-            if(gamepad1.dpad_left && !testThread.isAlive()) testThread.start();
-
-            if(!testThread.isAlive() && !hubThread.isAlive()) setPower(speed * x, -speed * y, speed * a + power);
-
-            if(gamepad2.start) {
-                config.imu.resetIMU();
-                config.setPoseEstimate(new Pose2d(0, 0));
-            }
-
-            telemetry.addData("Heading: ", imuHeading);
-            telemetry.addData("Power: ", config.backLeft.get()[0]);
-            telemetry.addData("Width: ", HubVisionPipelineBlue.width);
-            telemetry.addData("Distance: ", config.front.get()[0]);
-            telemetry.addData("HubCenterPoint: ", HubVisionPipelineBlue.getCenterPointHub().x);
-            telemetry.addData("Current Position: ", config.getPoseEstimate());
-            //telemetry.addData("Last Heading: ", lastHeading);
-            telemetry.addData("Level: ", currentLevel);
-            telemetry.addData("Slide Height: ", tempPos);
-            //telemetry.addData("Drivetrain Current Draw: ");
-            telemetry.addData("Limit: ", config.limit.get()[0]);
-           // telemetry.addData("Expected Height: ", levels[currentLevel]);
-            //telemetry.addData("Limit: ", config.limit.get()[0]);
-            //telemetry.addData("Expected Height: ", levels[currentLevel]);
-            telemetry.update();
-
-            config.update();
         }
 
         hardware.Stop();
@@ -358,7 +344,7 @@ public class RRTeleOp extends LinearOpMode {
     public void imuTurn(double targetAngle) {
         //Angles in radians
         double power = 0.2;
-        while(Math.abs(power) > 0.03) {
+        while(Math.abs(power) > 0.04) {
             double tempHeading = imuHeading;
             if (tempHeading < 0) tempHeading += 2 * Math.PI;
             if (targetAngle < 0) targetAngle += 2 * Math.PI;

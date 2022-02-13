@@ -1,29 +1,22 @@
 package org.firstinspires.ftc.teamcode.Vision;
 
-import static org.firstinspires.ftc.teamcode.TeleOp.RRTeleOp.targetX;
-
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.robotcontroller.external.samples.SensorColor;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
-import org.firstinspires.ftc.teamcode.TeleOp.RRTeleOp;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
-import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvPipeline;
@@ -50,9 +43,9 @@ import java.util.concurrent.TimeUnit;
 @TeleOp
 public class HubVisionPipeline extends LinearOpMode {
 
-    public final int rows = 640;
-    public final int cols = 480;
-    public static int hueMin = 110, hueMax = 125, satMin = 170, satMax = 255, valMin = 65, valMax = 180;
+    public final int rows = 320;
+    public final int cols = 240;
+    public static int hueMin = 110, hueMax = 125, satMin = 175, satMax = 255, valMin = 35, valMax = 180;
     public static int blurSize = 11, erodeSize = 6, dilateSize = 42;
     public static int extract = 1;
     public static int g;
@@ -66,7 +59,7 @@ public class HubVisionPipeline extends LinearOpMode {
     public static int currentStageNum = stageToRenderToViewport.ordinal();
     public static int nextStageNum = currentStageNum + 1;
 
-    private static Point centerPointHub = new Point(320, 240);
+    private static Point centerPointHub = new Point(160, 120);
     
     OpenCvWebcam webCam, webcam2;
 
@@ -203,7 +196,7 @@ public class HubVisionPipeline extends LinearOpMode {
                 int max = contours.size();
                 while(i < max && max > 0){
                     Rect rec = Imgproc.boundingRect(contours.get(i));
-                    if(rec.br().y < 380){
+                    if(rec.br().y < 100){
                         contours.remove(i);
                         max--;
                         i--;
@@ -232,7 +225,10 @@ public class HubVisionPipeline extends LinearOpMode {
                     //Imgproc.circle(finalMat, new Point(centerOfMass.val[0], centerOfMass.val[1]), 5, new Scalar(255, 0, 0), 7);
                 }
             }
-            else centerPointHub = new Point(-1, 240);
+            else {
+                centerPointHub = new Point(-1, 120);
+                width = 0;
+            }
 
             switch (stageToRenderToViewport) {
                 case RAW: {
