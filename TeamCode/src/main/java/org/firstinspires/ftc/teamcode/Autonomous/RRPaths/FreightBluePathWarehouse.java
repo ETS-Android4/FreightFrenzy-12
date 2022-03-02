@@ -40,7 +40,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightBluePathWarehouse extends LinearOpMode {
 
-    public static double back = 32, toHub = 6, toWall = 47, park = 37, scor = 4;
+    public static double back = 32, toHub = 4, toWall = 47, park = 40, scor = 1;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 
@@ -48,7 +48,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
 
     public static int leftX = 5, middleX = 100, rightX = 260, allY = 195;
 
-    public static double level1 = 660, level2 = 2400, sensorSideOffset, sensorStrightOffset;
+    public static double level1 = 660, level2 = 2200, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.65, HALF = 0.21;
 
@@ -145,11 +145,6 @@ public class FreightBluePathWarehouse extends LinearOpMode {
                 .build();
         drive.followTrajectory(toPark);
 
-        Trajectory extraPush = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .forward(3)
-                .build();
-        drive.followTrajectory(extraPush);
-
         sleep(500);
 
         drive.preingest.setPower(-1);
@@ -161,7 +156,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.followTrajectory(walll);
 
         Trajectory back = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(park + 3)
+                .back(park + 2)
                 .build();
         drive.followTrajectory(back);
 
@@ -194,7 +189,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.slides.setPower(-0.8);
 
         Trajectory parc = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .forward(park + 1)
+                .forward(park)
                 .build();
         drive.followTrajectory(parc);
     }

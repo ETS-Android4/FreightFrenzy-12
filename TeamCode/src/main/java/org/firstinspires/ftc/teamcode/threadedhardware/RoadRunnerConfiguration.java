@@ -91,12 +91,13 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
 
     private List<LynxModule> allHubs;
 
-    public ThreadedMotor backLeft, frontLeft, frontRight, backRight, spinner, slides, ingest, preIngest;
+    public ThreadedMotor backLeft, frontLeft, frontRight, backRight, leftIntakeLift, rightIntakeLift, slides;
     private List<ThreadedMotor> motors;
 
     public ThreadedAnalogSensor left, right, front;
 
-    public ThreadedServo dropper, flipdown;
+    public ThreadedServo dropperArm, dropperLid;
+    public ThreadedCRServo leftIntakeSpinner, rightIntakeSpinner;
 
     public ThreadedDigitalSensor limit;
 
@@ -131,12 +132,11 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         frontLeft = new ThreadedMotor(hwMap, "front_left_motor");
         frontRight = new ThreadedMotor(hwMap, "front_right_motor");
         backRight = new ThreadedMotor(hwMap, "back_right_motor");
-        ingest = new ThreadedMotor(hwMap, "ingest");
-        preIngest = new ThreadedMotor(hwMap, "preingest");
-        spinner = new ThreadedMotor(hwMap, "spinner");
+        leftIntakeLift = new ThreadedMotor(hwMap, "leftIntakeLift");
+        rightIntakeLift = new ThreadedMotor(hwMap, "rightIntakeLift");
         slides = new ThreadedMotor(hwMap, "slides");
-        dropper = new ThreadedServo(hwMap, "dropper");
-        flipdown = new ThreadedServo(hwMap, "flipdown");
+        leftIntakeSpinner = new ThreadedCRServo(hwMap, "leftIntakeSpinner");
+        rightIntakeSpinner = new ThreadedCRServo(hwMap, "rightIntakeSpinner");
         limit = new ThreadedDigitalSensor(hwMap, "limit");
         imu = new ThreadedIMU(hwMap);
 
@@ -145,13 +145,15 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         slides.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        spinner.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        ingest.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        preIngest.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        spinner.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftIntakeLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftIntakeLift.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftIntakeLift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightIntakeLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightIntakeLift.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightIntakeLift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        //left = new ThreadedAnalogSensor(hwMap, "left", distance);
-        //right = new ThreadedAnalogSensor(hwMap, "right", distance);
+        left = new ThreadedAnalogSensor(hwMap, "left", distance);
+        right = new ThreadedAnalogSensor(hwMap, "right", distance);
         front = new ThreadedAnalogSensor(hwMap, "front", distance);
 
         setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

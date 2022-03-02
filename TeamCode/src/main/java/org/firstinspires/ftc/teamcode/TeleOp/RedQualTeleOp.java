@@ -36,19 +36,25 @@ public class RedQualTeleOp extends LinearOpMode {
     public static int g;
     public static int exp;
 
+    //Maximum distance for slides is 1800, and going out is negative power.
+    //Distance for intake dumping is 550, and positive is going down.
+
     boolean turning = false;
 
     public static double sensorSideOffset = 0, sensorStrightOffset = 0;
 
     public static double p = 0.0003, targetX = 115, yPow = 0.8, yConst = -0.02, xPow = 0.6, maximumHubWidth = 145, imuP = 0.5;
 
-    public static double durationMilli = 2000, rampP = -0.0006, rampF = -0.2;
+    public static double durationMilli = 2100, rampP = -0.00055, rampF = -0.2;
 
-    public static double OPEN = 0.02, CLOSE = 0.72, FLIPDOWN = 1, x = -22, y = 24, b = 31, a = -50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
+    //Open is all the way down, will want less extreme for many cases.
+    public static double OPEN = 1, CLOSE = 0.4, FLIPDOWN = 1, x = -22, y = 24, b = 31, a = -50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
 
-    public static int[] levels = {0, 660, 1800, 2250, 2500};
+    public static int[] levels = {0, -750, -1250, -1750};
 
-    private int currentLevel = 0;
+    public static int[] intakeLiftLevels = {0, -275, -550};
+
+    private int currentLevel = 0, leftLevel = 1, rightLevel = 1;
 
     public boolean levelPressed = false, manual = false;
 
@@ -62,7 +68,7 @@ public class RedQualTeleOp extends LinearOpMode {
 
     HardwareThread hardware;
 
-    double ingesterSpeed, lastHeading, lastTime = 0;
+    double lastHeading, lastTime = 0;
 
     ElapsedTime timeout, ducktime;
 
@@ -96,15 +102,14 @@ public class RedQualTeleOp extends LinearOpMode {
         exposure.setExposure(exp, TimeUnit.MILLISECONDS);
 
         lastHeading = 0;
-        ingesterSpeed = 0;
 
         config.imu.gettingInput = true;
 
         sleep(200);
 
-        config.slides.setPower(-0.5);
-        while(!isStopRequested() && config.limit.get()[0] == 0) {}
-        config.slides.setPower(0);
+//        config.slides.setPower(-0.5);
+//        while(!isStopRequested() && config.limit.get()[0] == 0) {}
+//        config.slides.setPower(0);
 
         slidesOffset = (int) config.slides.get()[1];
 
@@ -118,8 +123,6 @@ public class RedQualTeleOp extends LinearOpMode {
             telemetry.update();
         }
 
-        config.dropper.set(CLOSE);
-
         waitForStart();
 
         Sequence waitMillis = new Sequence(() -> {
@@ -128,116 +131,117 @@ public class RedQualTeleOp extends LinearOpMode {
         }, null);
         waitThread = new Thread(waitMillis);
 
-        Sequence dump = new Sequence(() -> {
-            config.dropper.set(OPEN);
-            sleep(650);
-            config.dropper.set(CLOSE);
-            currentLevel = 0;
-        });
-        dumpThread = new Thread(dump);
+//        Sequence dump = new Sequence(() -> {
+//            config.dropper.set(OPEN);
+//            sleep(650);
+//            config.dropper.set(CLOSE);
+//            currentLevel = 0;
+//        });
+//        dumpThread = new Thread(dump);
 
-        Sequence forward = new Sequence(() -> {
-            ingesterSpeed = -1;
-            currentLevel = 3;
-            imuTurn(0);
-            config.dropper.set(0.52);
-            double front = config.front.get()[0];
-            timeout = new ElapsedTime();
-            while(front > 36 && timeout.seconds() < 2 && !manual) {
-                HardwareThread.waitForCycle();
-                front = config.front.get()[0];
-            }
-            if(timeout.seconds() >= 2 || manual) {
-                lastTime = 3;
-                return;
-            }
-            config.setPoseEstimate(new Pose2d(2 - front, config.getPoseEstimate().getY()));
-            Trajectory traj = config.trajectoryBuilder(config.getPoseEstimate())
-                    .strafeTo(new Vector2d(x, -4))
-                    .build();
-            config.followTrajectory(traj);
-
-            if(manual) {
-                lastTime = 3;
-                return;
-            }
-
-            config.setPoseEstimate(new Pose2d(0, 0));
-
-            Trajectory traj2 = config.trajectoryBuilder(config.getPoseEstimate())
-                    .back(b)
-                    .build();
-            config.followTrajectory(traj2);
-
-            ingesterSpeed = 0;
-        });
-
-        Sequence strafeToHub = new Sequence(() -> {
-            try {
-                if (lastTime >= 3 || manual) {
-                    lastTime = 0;
-                    return;
-                }
-
-                double x = HubVisionPipeline.getCenterPointHub().x;
-
-                lastHeading = imuHeading;
-
-                while ((x == -1 || HubVisionPipeline.width < 30) && !manual) {
-                    x = HubVisionPipeline.getCenterPointHub().x;
-                    setPower(-xPow, yConst, power);
-                }
-                setPower(0, 0, 0);
-
-                if (manual) return;
-
-                Trajectory toHub = config.trajectoryBuilder(config.getPoseEstimate())
-                        .back(6)
-                        .build();
-                config.followTrajectory(toHub);
-
-                if (manual) return;
-
-                config.dropper.set(OPEN);
-                sleep(650);
-                config.dropper.set(CLOSE);
-                currentLevel = 0;
-
-                Trajectory toWall = config.trajectoryBuilder(config.getPoseEstimate())
-                        .strafeTo(new Vector2d(config.getPoseEstimate().getX(), -4))
-                        .build();
-                config.followTrajectory(toWall);
-
-                if (manual) return;
-
-                config.setPoseEstimate(new Pose2d(0, 0));
-
-                Trajectory toWare = config.trajectoryBuilder(config.getPoseEstimate())
-                        .forward(b)
-                        .build();
-                config.followTrajectory(toWare);
-
-                ingesterSpeed = 1;
-            } catch(Exception e) {
-                System.out.println("Exception " + e + " in strafeToHub.");
-            }
-        }, forward);
-        testThread = new Thread(strafeToHub);
+//        Sequence forward = new Sequence(() -> {
+//            ingesterSpeed = -1;
+//            currentLevel = 3;
+//            imuTurn(0);
+//            double front = config.front.get()[0];
+//            timeout = new ElapsedTime();
+//            while(front > 36 && timeout.seconds() < 2 && !manual) {
+//                HardwareThread.waitForCycle();
+//                front = config.front.get()[0];
+//            }
+//            if(timeout.seconds() >= 2 || manual) {
+//                lastTime = 3;
+//                return;
+//            }
+//            config.setPoseEstimate(new Pose2d(2 - front, config.getPoseEstimate().getY()));
+//            Trajectory traj = config.trajectoryBuilder(config.getPoseEstimate())
+//                    .strafeTo(new Vector2d(x, -4))
+//                    .build();
+//            config.followTrajectory(traj);
+//
+//            if(manual) {
+//                lastTime = 3;
+//                return;
+//            }
+//
+//            config.setPoseEstimate(new Pose2d(0, 0));
+//
+//            Trajectory traj2 = config.trajectoryBuilder(config.getPoseEstimate())
+//                    .back(b)
+//                    .build();
+//            config.followTrajectory(traj2);
+//
+//            ingesterSpeed = 0;
+//        });
+//
+//        Sequence strafeToHub = new Sequence(() -> {
+//            try {
+//                if (lastTime >= 3 || manual) {
+//                    lastTime = 0;
+//                    return;
+//                }
+//
+//                double x = HubVisionPipeline.getCenterPointHub().x;
+//
+//                lastHeading = imuHeading;
+//
+//                while ((x == -1 || HubVisionPipeline.width < 30) && !manual) {
+//                    x = HubVisionPipeline.getCenterPointHub().x;
+//                    setPower(-xPow, yConst, power);
+//                }
+//                setPower(0, 0, 0);
+//
+//                if (manual) return;
+//
+//                Trajectory toHub = config.trajectoryBuilder(config.getPoseEstimate())
+//                        .back(6)
+//                        .build();
+//                config.followTrajectory(toHub);
+//
+//                if (manual) return;
+//
+//                config.dropper.set(OPEN);
+//                sleep(650);
+//                config.dropper.set(CLOSE);
+//                currentLevel = 0;
+//
+//                Trajectory toWall = config.trajectoryBuilder(config.getPoseEstimate())
+//                        .strafeTo(new Vector2d(config.getPoseEstimate().getX(), -4))
+//                        .build();
+//                config.followTrajectory(toWall);
+//
+//                if (manual) return;
+//
+//                config.setPoseEstimate(new Pose2d(0, 0));
+//
+//                Trajectory toWare = config.trajectoryBuilder(config.getPoseEstimate())
+//                        .forward(b)
+//                        .build();
+//                config.followTrajectory(toWare);
+//
+//                ingesterSpeed = 1;
+//            } catch(Exception e) {
+//                System.out.println("Exception " + e + " in strafeToHub.");
+//            }
+//        }, forward);
+//        testThread = new Thread(strafeToHub);
 
         while(!isStopRequested()) {
 
             try {
                 hardware.waitForCycle();
 
-                config.ingest.setPower(-ingesterSpeed);
-                config.spinner.setPower(gamepad2.left_stick_y);
-                config.preIngest.setPower(ingesterSpeed * 0.6);
+                config.leftIntakeLift.setTargetPosition(leftLevel);
+                config.rightIntakeLift.setTargetPosition(rightLevel);
 
-                if (gamepad1.back) config.flipdown.set(FLIPDOWN);
-
-                if (gamepad1.a || gamepad2.a) ingesterSpeed = 1;
-                else if (gamepad1.y || gamepad2.y) ingesterSpeed = -1;
-                else if (gamepad1.back || gamepad2.back) ingesterSpeed = 0;
+                if (gamepad1.x || gamepad2.x) {
+                    leftLevel = 0;
+                    rightLevel = 1;
+                }
+                else if (gamepad1.b || gamepad2.b) {
+                    leftLevel = 1;
+                    rightLevel = 0;
+                }
 
                 imuHeading = config.imu.get()[0];
                 double tempHeading = imuHeading;
@@ -266,8 +270,7 @@ public class RedQualTeleOp extends LinearOpMode {
                 } else if ((gamepad1.dpad_down || gamepad2.dpad_down) && !levelPressed) {
                     currentLevel -= currentLevel > 0 ? 1 : 0;
                     levelPressed = true;
-                } else if (!gamepad1.dpad_down && !gamepad1.dpad_up && !gamepad2.dpad_down &&
-                        !gamepad2.dpad_up) levelPressed = false;
+                } else if (!gamepad1.dpad_down && !gamepad1.dpad_up && !gamepad2.dpad_down && !gamepad2.dpad_up) levelPressed = false;
 
                 double tempPos = config.slides.get()[1] + slidesOffset;
 
@@ -288,24 +291,24 @@ public class RedQualTeleOp extends LinearOpMode {
                     power = 0;
                 }
 
-                if (gamepad2.left_stick_button && ducktime.milliseconds() > durationMilli) {
-                    ducktime.reset();
-                }
-                if (ducktime.milliseconds() < durationMilli)
-                    config.spinner.setPower(-(rampF + rampP * ducktime.milliseconds()));
-                else config.spinner.setPower(0);
-
-                if (dumpThread.isAlive()) ;
-                else if (gamepad1.start) dumpThread.start();
-                else if (gamepad1.x) config.dropper.set(CLOSE);
-                else if (gamepad1.b) config.dropper.set(OPEN);
+//                if (gamepad2.left_stick_button && ducktime.milliseconds() > durationMilli) {
+//                    ducktime.reset();
+//                }
+//                if (ducktime.milliseconds() < durationMilli)
+//                    config.spinner.setPower(-(rampF + rampP * ducktime.milliseconds()));
+//                else config.spinner.setPower(0);
+//
+//                if (dumpThread.isAlive()) ;
+//                else if (gamepad1.start) dumpThread.start();
+//                else if (gamepad1.x) config.dropper.set(CLOSE);
+//                else if (gamepad1.b) config.dropper.set(OPEN);
 
                 double speed = gamepad1.right_bumper ? 0.3 : 1;
                 double x = 0.6 * -gamepad1.left_trigger + 0.6 * gamepad1.right_trigger +
                         gamepad1.left_stick_x, y = gamepad1.left_stick_y, a =
                         gamepad1.right_stick_x;
 
-                if (gamepad1.dpad_left && !testThread.isAlive()) testThread.start();
+                //if (gamepad1.dpad_left && !testThread.isAlive()) testThread.start(); Add back later
 
                 if (!testThread.isAlive()) setPower(speed * x, -speed * y, speed * a);
 

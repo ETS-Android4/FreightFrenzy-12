@@ -39,7 +39,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightRedPathDucks extends LinearOpMode {
 
-    public static double back = -5, toSpin = -15.5, strafe = 35, toHub = 27, park = 16;
+    public static double back = -5, toSpin = -16.5, strafe = 35, toHub = 27, park = 16;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 
@@ -47,7 +47,7 @@ public class FreightRedPathDucks extends LinearOpMode {
 
     public static int leftX = 5, middleX = 100, rightX = 250, allY = 195;
 
-    public static double level1 = 1100, level2 = 2400, sensorSideOffset, sensorStrightOffset;
+    public static double level1 = 1100, level2 = 2200, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.64, HALF = 0.21;
 
@@ -68,6 +68,22 @@ public class FreightRedPathDucks extends LinearOpMode {
         FtcDashboard.getInstance().startCameraStream(webCam, 0);
         ElapsedTime time = new ElapsedTime();
         double lastTime = 0;
+
+        drive.slides.setPower(-0.3);
+        telemetry.addData("Limit: ", drive.limit.getState());
+        telemetry.update();
+        while(!drive.limit.getState() && !isStopRequested() && !isStarted()){
+            telemetry.addData("Limit: ", drive.limit.getState());
+            telemetry.update();
+        }
+        drive.slides.setPower(0);
+        drive.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        drive.slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        while(!isStarted() && !isStopRequested()) {
+            telemetry.addData("Duck Location: ", duckLocation);
+            telemetry.update();
+        }
 
         waitForStart();
         if(isStopRequested()) return;

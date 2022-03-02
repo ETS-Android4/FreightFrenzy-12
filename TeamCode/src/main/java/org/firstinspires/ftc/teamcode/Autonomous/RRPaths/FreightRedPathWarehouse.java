@@ -40,7 +40,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightRedPathWarehouse extends LinearOpMode {
 
-    public static double back = 32, toHub = 3, toWall = 44, park = 38, scor = 3;
+    public static double back = 32, toHub = 3, toWall = 44, park = 40, scor = 3;
 
     private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
 
@@ -48,7 +48,7 @@ public class FreightRedPathWarehouse extends LinearOpMode {
 
     public static int leftX = 5, middleX = 100, rightX = 260, allY = 195;
 
-    public static double level1 = 660, level2 = 2400, sensorSideOffset, sensorStrightOffset;
+    public static double level1 = 660, level2 = 2200, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.65, HALF = 0.21;
 
@@ -161,7 +161,7 @@ public class FreightRedPathWarehouse extends LinearOpMode {
         drive.followTrajectory(walll);
 
         Trajectory back = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(park + 3)
+                .back(park + 2)
                 .build();
         drive.followTrajectory(back);
 
