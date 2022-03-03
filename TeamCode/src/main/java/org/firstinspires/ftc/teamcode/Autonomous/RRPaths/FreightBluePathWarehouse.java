@@ -42,7 +42,7 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightBluePathWarehouse extends LinearOpMode {
 
-    public static double back = 66, toHub = 4, toWall = 47, park = 40, scor = 1;
+    public static double back = 66;
 
     private Pose2d startPose = new Pose2d(-60, 0, Math.toRadians(0)); //Need to vary heading
 
@@ -133,10 +133,16 @@ public class FreightBluePathWarehouse extends LinearOpMode {
 
         while(time.seconds() > 10 && !isStopRequested()) {
 
+            drive.leftIntakeSpinner.setPower(1); //Not sure direction
+
             Trajectory backup = drive.trajectoryBuilder(drive.getPoseEstimate())
                     .back(back)
                     .build();
-            drive.followTrajectory(backup);
+            drive.followTrajectoryAsync(backup);
+
+            while(!isStopRequested() && drive.isBusy()) { //Add distance sensor
+                drive.update();
+            }
 
             drive.lid.setPosition(RedQualTeleOp.OPEN);
             drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
@@ -147,7 +153,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
             Trajectory toHub = drive.trajectoryBuilder(drive.getPoseEstimate())
                     .splineToSplineHeading(pose1, Math.toRadians(0))
                     .addTemporalMarker(1000, () -> {
-                        //Drop block
+                        drive.leftIntakeSpinner.setPower(0); //Check if this or opposite direction is faster
                     })
                     .addTemporalMarker(1500, () -> {
                         drive.lid.setPosition(RedQualTeleOp.CLOSE);
@@ -166,8 +172,17 @@ public class FreightBluePathWarehouse extends LinearOpMode {
             drive.lid.setPosition(RedQualTeleOp.CLOSE);
             drive.arm.setPosition(RedQualTeleOp.ARMBACK);
             drive.slides.setTargetPosition(RedQualTeleOp.levels[0]);
-
         }
+
+        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
+        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
+
+        drive.leftIntakeSpinner.setPower(1); //Not sure direction
+
+        Trajectory park = drive.trajectoryBuilder(drive.getPoseEstimate())
+                .back(back - 6)
+                .build();
+        drive.followTrajectoryAsync(park);
     }
 
     public void imuTurn(double angle) {
