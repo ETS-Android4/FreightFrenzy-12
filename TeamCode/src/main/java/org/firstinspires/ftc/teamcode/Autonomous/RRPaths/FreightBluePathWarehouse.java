@@ -15,6 +15,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.R;
+import org.firstinspires.ftc.teamcode.TeleOp.RedQualTeleOp;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -40,15 +42,17 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightBluePathWarehouse extends LinearOpMode {
 
-    public static double back = 32, toHub = 4, toWall = 47, park = 40, scor = 1;
+    public static double back = 66, toHub = 4, toWall = 47, park = 40, scor = 1;
 
-    private Pose2d startPose = new Pose2d(0, 0, Math.toRadians(0)); //Need to vary heading
+    private Pose2d startPose = new Pose2d(-60, 0, Math.toRadians(0)); //Need to vary heading
+
+    public static int x1 = -48, leftX = 5, middleX = 100, rightX = 260, allY = 195;
+
+    public Pose2d pose1 = new Pose2d(x1, 0), score = new Pose2d(-84);
 
     public static int duckLocation = -1, manualDuckLocation = -1;
 
-    public static int leftX = 5, middleX = 100, rightX = 260, allY = 195;
-
-    public static double level1 = 660, level2 = 2200, sensorSideOffset, sensorStrightOffset;
+    public static double level1 = 660, level2 = 1750, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.65, HALF = 0.21;
 
@@ -67,8 +71,12 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         webCam.setPipeline(new duckScanPipeline());
         webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
         FtcDashboard.getInstance().startCameraStream(webCam, 0);
-        ElapsedTime time = new ElapsedTime();
         double lastTime = 0;
+
+        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
+        drive.leftIntakeLift.setPower(0.8);
+        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
+        drive.rightIntakeLift.setPower(0.8);
 
         drive.slides.setPower(-0.3);
         telemetry.addData("Limit: ", drive.limit.getState());
@@ -86,8 +94,11 @@ public class FreightBluePathWarehouse extends LinearOpMode {
             telemetry.update();
         }
 
+        ElapsedTime time;
         waitForStart();
         if(isStopRequested()) return;
+
+        time = new ElapsedTime();
 
         double slideTicks = 0;
         if(duckLocation > 0) slideTicks = duckLocation == 1 ? level1 : level2;
@@ -98,100 +109,65 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         telemetry.addData("Position: ", drive.getPoseEstimate());
         telemetry.update();
 
+        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
+        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[1]);
+
         drive.slides.setTargetPosition((int) slideTicks);
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
 
+        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
+        drive.leftIntakeLift.setPower(-1);
+        drive.arm.setPosition(RedQualTeleOp.ARMFRONT);
+
         Trajectory offWall = drive.trajectoryBuilder(startPose)
-                .back(8)
+                .forward(24)
                 .build();
         drive.followTrajectory(offWall);
 
-        drive.turn(Math.toRadians(-90));
-
-        Trajectory backup = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeRight(back)
-                .build();
-        drive.followTrajectory(backup);
-
-        drive.dropper.setPosition(HALF);
-        sleep(300);
-
-        Trajectory hub = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(toHub)
-                .build();
-        drive.followTrajectory(hub);
-
-        drive.dropper.setPosition(OPEN);
+        drive.lid.setPosition(RedQualTeleOp.DUMP);
         sleep(600);
+        drive.lid.setPosition(RedQualTeleOp.CLOSE);
+        drive.arm.setPosition(RedQualTeleOp.ARMBACK);
+        drive.slides.setTargetPosition(RedQualTeleOp.levels[0]);
 
-        Trajectory straf = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeLeft(toWall)
-                .build();
-        drive.followTrajectory(straf);
+        while(time.seconds() > 10 && !isStopRequested()) {
 
-        drive.slides.setTargetPosition(0);
-        drive.slides.setPower(-0.6);
+            Trajectory backup = drive.trajectoryBuilder(drive.getPoseEstimate())
+                    .back(back)
+                    .build();
+            drive.followTrajectory(backup);
 
-        drive.dropper.setPosition(CLOSED);
-        drive.flipdown.setPosition(1);
-        sleep(300);
+            drive.lid.setPosition(RedQualTeleOp.OPEN);
+            drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
+            drive.leftIntakeLift.setPower(-1);
 
-        drive.ingester.setPower(-1);
-        drive.preingest.setPower(0.8);
+            drive.setPoseEstimate(new Pose2d(drive.convertSensorInput(drive.left.getVoltage()), drive.convertSensorInput(drive.convertSensorInput(drive.back.getVoltage()))));
 
-        Trajectory toPark = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .forward(park)
-                .build();
-        drive.followTrajectory(toPark);
+            Trajectory toHub = drive.trajectoryBuilder(drive.getPoseEstimate())
+                    .splineToSplineHeading(pose1, Math.toRadians(0))
+                    .addTemporalMarker(1000, () -> {
+                        //Drop block
+                    })
+                    .addTemporalMarker(1500, () -> {
+                        drive.lid.setPosition(RedQualTeleOp.CLOSE);
+                        drive.slides.setTargetPosition((int) level2);
+                        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
+                    })
+                    .addTemporalMarker(1750, () -> {
+                        drive.arm.setPosition(RedQualTeleOp.ARMFRONT);
+                    })
+                    .splineToSplineHeading(score, Math.toRadians(0))
+                    .build();
+            drive.followTrajectory(toHub);
 
-        sleep(500);
+            drive.lid.setPosition(RedQualTeleOp.DUMP);
+            sleep(600);
+            drive.lid.setPosition(RedQualTeleOp.CLOSE);
+            drive.arm.setPosition(RedQualTeleOp.ARMBACK);
+            drive.slides.setTargetPosition(RedQualTeleOp.levels[0]);
 
-        drive.preingest.setPower(-1);
-        drive.ingester.setPower(1);
-
-        Trajectory walll = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeLeft(4)
-                .build();
-        drive.followTrajectory(walll);
-
-        Trajectory back = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(park + 2)
-                .build();
-        drive.followTrajectory(back);
-
-        drive.slides.setTargetPosition((int) level2);
-        drive.slides.setPower(1);
-
-        drive.preingest.setPower(0);
-        drive.ingester.setPower(0);
-
-        Trajectory strafe = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeRight(toWall-6)
-                .build();
-        drive.followTrajectory(strafe);
-
-        Trajectory score = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(scor)
-                .build();
-        drive.followTrajectory(score);
-
-        drive.dropper.setPosition(OPEN);
-        sleep(600);
-
-        Trajectory toWal = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeLeft(toWall)
-                .build();
-        drive.followTrajectory(toWal);
-
-        drive.dropper.setPosition(CLOSED);
-        drive.slides.setTargetPosition(0);
-        drive.slides.setPower(-0.8);
-
-        Trajectory parc = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .forward(park)
-                .build();
-        drive.followTrajectory(parc);
+        }
     }
 
     public void imuTurn(double angle) {

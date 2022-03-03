@@ -94,10 +94,10 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
     public ThreadedMotor backLeft, frontLeft, frontRight, backRight, leftIntakeLift, rightIntakeLift, slides;
     private List<ThreadedMotor> motors;
 
-    public ThreadedAnalogSensor left, right, front;
+    public ThreadedAnalogSensor left, right, back;
 
     public ThreadedServo dropperArm, dropperLid;
-    public ThreadedCRServo leftIntakeSpinner, rightIntakeSpinner;
+    public ThreadedCRServo leftIntakeSpinner, rightIntakeSpinner, leftDuckSpinner, rightDuckSpinner;
 
     public ThreadedDigitalSensor limit;
 
@@ -137,8 +137,12 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         slides = new ThreadedMotor(hwMap, "slides");
         leftIntakeSpinner = new ThreadedCRServo(hwMap, "leftIntakeSpinner");
         rightIntakeSpinner = new ThreadedCRServo(hwMap, "rightIntakeSpinner");
+        leftDuckSpinner = new ThreadedCRServo(hwMap, "leftDuckSpinner");
+        rightDuckSpinner = new ThreadedCRServo(hwMap, "rightDuckSpinner");
         limit = new ThreadedDigitalSensor(hwMap, "limit");
         imu = new ThreadedIMU(hwMap);
+        dropperArm = new ThreadedServo(hwMap, "dumperArm");
+        dropperLid = new ThreadedServo(hwMap, "dumperLid");
 
         motors = Arrays.asList(frontLeft, backLeft, backRight, frontRight);
 
@@ -154,7 +158,7 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
 
         left = new ThreadedAnalogSensor(hwMap, "left", distance);
         right = new ThreadedAnalogSensor(hwMap, "right", distance);
-        front = new ThreadedAnalogSensor(hwMap, "front", distance);
+        back = new ThreadedAnalogSensor(hwMap, "back", distance);
 
         setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 

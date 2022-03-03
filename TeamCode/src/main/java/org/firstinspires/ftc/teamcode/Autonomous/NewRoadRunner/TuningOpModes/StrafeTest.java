@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.SampleMecanumDriv
 @Config
 @Autonomous(group = "drive")
 public class StrafeTest extends LinearOpMode {
-    public static double DISTANCE = 60; // in
+    public static double DISTANCE = 72; // in
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -26,7 +26,7 @@ public class StrafeTest extends LinearOpMode {
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
         Trajectory trajectory = drive.trajectoryBuilder(new Pose2d())
-                .strafeTo(new Vector2d(5, 20))
+                .strafeRight(DISTANCE)
                 .build();
 
         waitForStart();

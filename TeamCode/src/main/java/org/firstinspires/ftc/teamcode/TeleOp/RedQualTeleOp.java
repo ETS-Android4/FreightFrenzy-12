@@ -48,9 +48,9 @@ public class RedQualTeleOp extends LinearOpMode {
     public static double durationMilli = 2100, rampP = -0.00055, rampF = -0.2;
 
     //Open is all the way down, will want less extreme for many cases.
-    public static double OPEN = 1, CLOSE = 0.4, FLIPDOWN = 1, x = -22, y = 24, b = 31, a = -50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
+    public static double OPEN = 1, CLOSE = 0.5, DUMP = 0.69, ARMBACK = 0.5, ARMFRONT = 0.5, x = -22, y = 24, b = 31, a = -50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
 
-    public static int[] levels = {0, -750, -1250, -1750};
+    public static int[] levels = {100, 750, 1250, 1750};
 
     public static int[] intakeLiftLevels = {0, -275, -550};
 
@@ -81,25 +81,25 @@ public class RedQualTeleOp extends LinearOpMode {
 
         FtcDashboard dashboard = FtcDashboard.getInstance();
         ducktime = new ElapsedTime();
-
-        //1 camera at the moment.
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam2"), cameraMonitorViewId);
-        webCam.openCameraDevice();//open camera
-        webCam.setPipeline(new HubVisionPipeline.hubScanPipeline());
-        webCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
-        FtcDashboard.getInstance().startCameraStream(webCam, 0);
-
-        ExposureControl exposure = webCam.getExposureControl();
-        GainControl gain = webCam.getGainControl();
-        exposure.setMode(ExposureControl.Mode.Manual);
-        g = gain.getGain();
-        exp = (int) exposure.getExposure(TimeUnit.MILLISECONDS);
-        exp = 14;
-        g = 0;
-
-        gain.setGain(g);
-        exposure.setExposure(exp, TimeUnit.MILLISECONDS);
+//
+//        //1 camera at the moment.
+//        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+//        webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam2"), cameraMonitorViewId);
+//        webCam.openCameraDevice();//open camera
+//        webCam.setPipeline(new HubVisionPipeline.hubScanPipeline());
+//        webCam.startStreaming(rows, cols, OpenCvCameraRotation.UPRIGHT);//display on RC
+//        FtcDashboard.getInstance().startCameraStream(webCam, 0);
+//
+//        ExposureControl exposure = webCam.getExposureControl();
+//        GainControl gain = webCam.getGainControl();
+//        exposure.setMode(ExposureControl.Mode.Manual);
+//        g = gain.getGain();
+//        exp = (int) exposure.getExposure(TimeUnit.MILLISECONDS);
+//        exp = 14;
+//        g = 0;
+//
+//        gain.setGain(g);
+//        exposure.setExposure(exp, TimeUnit.MILLISECONDS);
 
         lastHeading = 0;
 
@@ -107,13 +107,16 @@ public class RedQualTeleOp extends LinearOpMode {
 
         sleep(200);
 
-//        config.slides.setPower(-0.5);
-//        while(!isStopRequested() && config.limit.get()[0] == 0) {}
-//        config.slides.setPower(0);
+        config.slides.setPower(-0.3);
+        while(!isStopRequested() && config.limit.get()[0] == 0) {
+            HardwareThread.waitForCycle();
+            System.out.println(config.limit.get()[0]);
+        }
+        config.slides.setPower(0);
 
         slidesOffset = (int) config.slides.get()[1];
 
-        config.slides.setTargetPosition(slidesOffset);
+        config.slides.setTargetPosition(slidesOffset + 100);
         config.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         config.setPoseEstimate(new Pose2d(0, 0));
@@ -131,13 +134,14 @@ public class RedQualTeleOp extends LinearOpMode {
         }, null);
         waitThread = new Thread(waitMillis);
 
-//        Sequence dump = new Sequence(() -> {
-//            config.dropper.set(OPEN);
-//            sleep(650);
-//            config.dropper.set(CLOSE);
-//            currentLevel = 0;
-//        });
-//        dumpThread = new Thread(dump);
+        Sequence dump = new Sequence(() -> {
+            config.dropperLid.set(DUMP);
+            sleep(600);
+            config.dropperLid.set(CLOSE);
+            config.dropperArm.set(ARMBACK);
+            currentLevel = 0;
+        });
+        dumpThread = new Thread(dump);
 
 //        Sequence forward = new Sequence(() -> {
 //            ingesterSpeed = -1;
@@ -232,15 +236,28 @@ public class RedQualTeleOp extends LinearOpMode {
                 hardware.waitForCycle();
 
                 config.leftIntakeLift.setTargetPosition(leftLevel);
+                config.leftIntakeLift.set(1);
                 config.rightIntakeLift.setTargetPosition(rightLevel);
+                config.rightIntakeLift.set(1);
 
                 if (gamepad1.x || gamepad2.x) {
                     leftLevel = 0;
                     rightLevel = 1;
-                }
-                else if (gamepad1.b || gamepad2.b) {
+                } else if (gamepad1.b || gamepad2.b) {
                     leftLevel = 1;
                     rightLevel = 0;
+                }
+
+                if(gamepad1.a || gamepad2.a) {
+                    config.dropperLid.set(CLOSE);
+                } else if(gamepad1.b || gamepad2.b) {
+                    config.dropperLid.set(OPEN);
+                }
+
+                if(gamepad1.back) {
+                    config.dropperArm.set(ARMBACK);
+                } else if(gamepad1.start) {
+                    config.dropperArm.set(ARMFRONT);
                 }
 
                 imuHeading = config.imu.get()[0];
@@ -307,10 +324,11 @@ public class RedQualTeleOp extends LinearOpMode {
                 double x = 0.6 * -gamepad1.left_trigger + 0.6 * gamepad1.right_trigger +
                         gamepad1.left_stick_x, y = gamepad1.left_stick_y, a =
                         gamepad1.right_stick_x;
+                System.out.println("Values: " + x + ", " + y + ", " + a);
 
                 //if (gamepad1.dpad_left && !testThread.isAlive()) testThread.start(); Add back later
 
-                if (!testThread.isAlive()) setPower(speed * x, -speed * y, speed * a);
+                setPower(speed * x, -speed * y, speed * a);
 
                 if (gamepad2.start) {
                     config.imu.resetIMU();
@@ -322,7 +340,7 @@ public class RedQualTeleOp extends LinearOpMode {
                 telemetry.addData("Heading: ", imuHeading);
                 telemetry.addData("Power: ", config.backLeft.get()[0]);
                 telemetry.addData("Width: ", HubVisionPipeline.width);
-                telemetry.addData("Distance: ", config.front.get()[0]);
+                telemetry.addData("Distance: ", config.back.get()[0]);
                 telemetry.addData("HubCenterPoint: ", HubVisionPipeline.getCenterPointHub().x);
                 telemetry.addData("Current Position: ", config.getPoseEstimate());
                 //telemetry.addData("Last Heading: ", lastHeading);
@@ -366,7 +384,7 @@ public class RedQualTeleOp extends LinearOpMode {
         if(isStopRequested()) return null;
         double imuHeading = config.imu.get()[0];
         double right = config.right.get()[0];
-        double front = config.front.get()[0];
+        double front = config.back.get()[0];
 
         if(right < 0 || right > 60) right = -1;
         if(front < 0 || front > 60) front = -1;
@@ -421,7 +439,7 @@ public class RedQualTeleOp extends LinearOpMode {
         double imuHeading = config.imu.get()[0];
         double left = -1; //config.left.get()[0];
         double right = config.right.get()[0];
-        double front = config.front.get()[0];
+        double front = config.back.get()[0];
 
         if(left < 0 || left > 60) left = -1;
         if(right < 0 || right > 60) right = -1;

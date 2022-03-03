@@ -97,12 +97,12 @@ public class WallStrafeTest extends LinearOpMode {
 
             double cos = Math.abs(Math.cos(drive.imu.get()[0]));
             double sin = Math.abs(Math.sin(drive.imu.get()[0]));
-            double front = drive.front.get()[0] * cos;
+            double front = drive.back.get()[0] * cos;
             double left = drive.left.get()[0] * cos - 8 * sin;
 
             while(time.seconds() < 1 && (front > 32 || left > Math.abs(intakeY) + 10)) {
                 HardwareThread.waitForCycle();
-                front = drive.front.get()[0] * cos;
+                front = drive.back.get()[0] * cos;
                 left = drive.left.get()[0] * cos - 16 * sin;
             }
             drive.setPoseEstimate(new Pose2d(time.seconds() >= 0.5 ? pose.getX() : 2 - front, time.seconds() >= 0.5 ? pose.getY() : 2 - left)); //Need to adjust

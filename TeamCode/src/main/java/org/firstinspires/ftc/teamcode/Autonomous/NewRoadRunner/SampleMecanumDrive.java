@@ -21,6 +21,8 @@ import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityCons
 import com.acmerobotics.roadrunner.util.NanoClock;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.hardware.AnalogInput;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorImplEx;
@@ -50,12 +52,12 @@ import static org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConst
  */
 @Config
 public class SampleMecanumDrive extends MecanumDrive {
-    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(3, 0, 0);
+    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(4, 0, 0);
     public static PIDCoefficients HEADING_PID = new PIDCoefficients(5, 0, 0);
 
     public static AxesOrder axes = AxesOrder.YZX;
 
-    public static double LATERAL_MULTIPLIER = 1.11;
+    public static double LATERAL_MULTIPLIER = 1.12;
 
     public static double VX_WEIGHT = 1;
     public static double VY_WEIGHT = 1;
@@ -71,10 +73,11 @@ public class SampleMecanumDrive extends MecanumDrive {
     private FtcDashboard dashboard;
     private NanoClock clock;
 
-    public DcMotorImplEx slides, spinner;
-    public Servo dropper, flipdown;
+    public AnalogInput left, back, right;
+    public DcMotorImplEx slides, leftIntakeLift, rightIntakeLift;
+    public Servo arm, lid;
+    public CRServo leftIntakeSpinner, rightIntakeSpinner, leftDuckSpinner, rightDuckSpinner;
     public DigitalChannel limit;
-    public DcMotorSimple ingester, preingest;
 
     private DcMotorEx leftFront, leftRear, rightRear, rightFront;
     private List<DcMotorEx> motors;
@@ -115,16 +118,27 @@ public class SampleMecanumDrive extends MecanumDrive {
         rightFront = hardwareMap.get(DcMotorEx.class, "front_right_motor");
         slides = hardwareMap.get(DcMotorImplEx.class,"slides");
         limit = hardwareMap.get(DigitalChannel.class, "limit");
-        dropper = hardwareMap.get(Servo.class, "dropper");
-        flipdown = hardwareMap.get(Servo.class, "flipdown");
-        ingester = hardwareMap.get(DcMotorSimple.class, "ingest");
-        preingest = hardwareMap.get(DcMotorSimple.class, "preingest");
-        spinner = hardwareMap.get(DcMotorImplEx.class, "spinner");
+        arm = hardwareMap.get(Servo.class, "dumperArm");
+        lid = hardwareMap.get(Servo.class, "dumperLid");
+        leftDuckSpinner = hardwareMap.get(CRServo.class, "leftDuckSpinner");
+        rightDuckSpinner = hardwareMap.get(CRServo.class, "rightDuckSpinner");
+        leftIntakeSpinner = hardwareMap.get(CRServo.class, "leftIntakeSpinner");
+        rightIntakeSpinner = hardwareMap.get(CRServo.class, "rightIntakeSpinner");
+        leftIntakeLift = hardwareMap.get(DcMotorImplEx.class, "leftIntakeLift");
+        rightIntakeLift = hardwareMap.get(DcMotorImplEx.class, "rightIntakeLift");
         slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         slides.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        spinner.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        spinner.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftIntakeLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftIntakeLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftIntakeLift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightIntakeLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightIntakeLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightIntakeLift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        left = hardwareMap.get(AnalogInput.class, "left");
+        right = hardwareMap.get(AnalogInput.class, "right");
+        back = hardwareMap.get(AnalogInput.class, "back");
 
         motors = Arrays.asList(leftFront, leftRear, rightRear, rightFront);
 
@@ -154,6 +168,10 @@ public class SampleMecanumDrive extends MecanumDrive {
         // for instance, setLocalizer(new ThreeTrackingWheelLocalizer(...));
 
         trajectorySequenceRunner = new TrajectorySequenceRunner(follower, HEADING_PID);
+    }
+
+    public double convertSensorInput(double voltage) {
+        return 87.4 * (voltage - 0.138);
     }
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
@@ -325,9 +343,9 @@ public class SampleMecanumDrive extends MecanumDrive {
         // Rotate about the z axis is the default assuming your REV Hub/Control Hub is laying
         // flat on a surface
 
-        // To work around an SDK bug, use -zRotationRate in place of xRotationRate 
-        // and -xRotationRate in place of zRotationRate (yRotationRate behaves as 
-        // expected). This bug does NOT affect orientation. 
+        // To work around an SDK bug, use -zRotationRate in place of xRotationRate
+        // and -xRotationRate in place of zRotationRate (yRotationRate behaves as
+        // expected). This bug does NOT affect orientation.
         //
         // See https://github.com/FIRST-Tech-Challenge/FtcRobotController/issues/251 for details.
         return (double) -imu.getAngularVelocity().zRotationRate;
