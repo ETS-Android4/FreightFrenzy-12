@@ -34,6 +34,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
@@ -127,7 +128,6 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
 
         ThreadedAnalogSensor.InterpretVoltage distance = ((double voltage, double max) -> 87.4 * (voltage - 0.138));
 
-
         backLeft = new ThreadedMotor(hwMap, "back_left_motor");
         frontLeft = new ThreadedMotor(hwMap, "front_left_motor");
         frontRight = new ThreadedMotor(hwMap, "front_right_motor");
@@ -139,21 +139,19 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         rightIntakeSpinner = new ThreadedCRServo(hwMap, "rightIntakeSpinner");
         leftDuckSpinner = new ThreadedCRServo(hwMap, "leftDuckSpinner");
         rightDuckSpinner = new ThreadedCRServo(hwMap, "rightDuckSpinner");
-        limit = new ThreadedDigitalSensor(hwMap, "limit");
-        imu = new ThreadedIMU(hwMap);
         dropperArm = new ThreadedServo(hwMap, "dumperArm");
         dropperLid = new ThreadedServo(hwMap, "dumperLid");
+        limit = new ThreadedDigitalSensor(hwMap, "limit");
+        imu = new ThreadedIMU(hwMap);
 
         motors = Arrays.asList(frontLeft, backLeft, backRight, frontRight);
 
-        slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         slides.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftIntakeLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftIntakeLift.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftIntakeLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         leftIntakeLift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightIntakeLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightIntakeLift.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftIntakeLift.reverse(true);
+        rightIntakeLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightIntakeLift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         left = new ThreadedAnalogSensor(hwMap, "left", distance);

@@ -42,9 +42,11 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightBluePathWarehouse extends LinearOpMode {
 
-    public static double back = 66;
+    public static double back = 58;
 
-    private Pose2d startPose = new Pose2d(-60, 0, Math.toRadians(0)); //Need to vary heading
+    public static double pow = -1;
+
+    private Pose2d startPose = new Pose2d(60, 0, Math.toRadians(0)); //Need to vary heading
 
     public static int x1 = -48, leftX = 5, middleX = 100, rightX = 260, allY = 195;
 
@@ -52,7 +54,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
 
     public static int duckLocation = -1, manualDuckLocation = -1;
 
-    public static double level1 = 660, level2 = 1750, sensorSideOffset, sensorStrightOffset;
+    public static double level0 = 1500, level1 = 1500, level2 = 1700, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.65, HALF = 0.21;
 
@@ -65,29 +67,31 @@ public class FreightBluePathWarehouse extends LinearOpMode {
 
         drive.setPoseEstimate(startPose);
 
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
-        webCam.openCameraDevice();//open camera
-        webCam.setPipeline(new duckScanPipeline());
-        webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
-        FtcDashboard.getInstance().startCameraStream(webCam, 0);
-        double lastTime = 0;
+//        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+//        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+//        webCam.openCameraDevice();//open camera
+//        webCam.setPipeline(new duckScanPipeline());
+//        webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
+//        FtcDashboard.getInstance().startCameraStream(webCam, 0);
+//        double lastTime = 0;
 
-        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
-        drive.leftIntakeLift.setPower(0.8);
-        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
-        drive.rightIntakeLift.setPower(0.8);
+        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2] + 50);
+        drive.leftIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        drive.leftIntakeLift.setPower(0.6);
+        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2] + 50);
+        drive.rightIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        drive.rightIntakeLift.setPower(0.6);
 
-        drive.slides.setPower(-0.3);
-        telemetry.addData("Limit: ", drive.limit.getState());
-        telemetry.update();
-        while(!drive.limit.getState() && !isStopRequested() && !isStarted()){
-            telemetry.addData("Limit: ", drive.limit.getState());
-            telemetry.update();
-        }
-        drive.slides.setPower(0);
-        drive.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        drive.slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+//        drive.slides.setPower(-0.3);
+//        telemetry.addData("Limit: ", drive.limit.getState());
+//        telemetry.update();
+//        while(!drive.limit.getState() && !isStopRequested() && !isStarted()){
+//            telemetry.addData("Limit: ", drive.limit.getState());
+//            telemetry.update();
+//        }
+//        drive.slides.setPower(0);
+//        drive.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//        drive.slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         while(!isStarted() && !isStopRequested()) {
             telemetry.addData("Duck Location: ", duckLocation);
@@ -100,9 +104,9 @@ public class FreightBluePathWarehouse extends LinearOpMode {
 
         time = new ElapsedTime();
 
-        double slideTicks = 0;
-        if(duckLocation > 0) slideTicks = duckLocation == 1 ? level1 : level2;
-        if(manualDuckLocation != -1) slideTicks = manualDuckLocation < 2 ? (manualDuckLocation == 0 ? 0 : level1) : level2;
+        double slideTicks = level2; //0;
+//        if(duckLocation > 0) slideTicks = duckLocation == 1 ? level1 : level2;
+//        if(manualDuckLocation != -1) slideTicks = manualDuckLocation < 2 ? (manualDuckLocation == 0 ? 0 : level1) : level2;
 
         System.out.println("Duck: " + duckLocation + ", ticks: " + slideTicks);
 
@@ -115,52 +119,66 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         drive.slides.setTargetPosition((int) slideTicks);
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
-
-        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
-        drive.leftIntakeLift.setPower(-1);
-        drive.arm.setPosition(RedQualTeleOp.ARMFRONT);
+        if(slideTicks == level2) drive.arm.setPosition(RedQualTeleOp.ARMFRONT);
+        else if(slideTicks == level1) drive.arm.setPosition(RedQualTeleOp.ARMMID);
+        else drive.arm.setPosition(RedQualTeleOp.ARMBOT);
 
         Trajectory offWall = drive.trajectoryBuilder(startPose)
-                .forward(24)
+                .forward(20)
                 .build();
         drive.followTrajectory(offWall);
 
-        drive.lid.setPosition(RedQualTeleOp.DUMP);
+        if(slideTicks == level2) drive.lid.setPosition(RedQualTeleOp.DUMP);
+        else if(slideTicks == level1) drive.lid.setPosition(RedQualTeleOp.DUMPMID);
+        else drive.lid.setPosition(RedQualTeleOp.DUMPLOW);
         sleep(600);
         drive.lid.setPosition(RedQualTeleOp.CLOSE);
         drive.arm.setPosition(RedQualTeleOp.ARMBACK);
         drive.slides.setTargetPosition(RedQualTeleOp.levels[0]);
 
-        while(time.seconds() > 10 && !isStopRequested()) {
+        while(time.seconds() < 20 && !isStopRequested()) {
 
-            drive.leftIntakeSpinner.setPower(1); //Not sure direction
+            drive.leftIntakeSpinner.setPower(-1); //Not sure direction
 
             Trajectory backup = drive.trajectoryBuilder(drive.getPoseEstimate())
                     .back(back)
+                    .addTemporalMarker(500, () -> {
+                        drive.arm.setPosition(RedQualTeleOp.ARMBACK);
+                    })
                     .build();
             drive.followTrajectoryAsync(backup);
 
-            while(!isStopRequested() && drive.isBusy()) { //Add distance sensor
+            while(!isStopRequested() && drive.isBusy()) { //Add limit switch
                 drive.update();
             }
 
             drive.lid.setPosition(RedQualTeleOp.OPEN);
             drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
-            drive.leftIntakeLift.setPower(-1);
 
-            drive.setPoseEstimate(new Pose2d(drive.convertSensorInput(drive.left.getVoltage()), drive.convertSensorInput(drive.convertSensorInput(drive.back.getVoltage()))));
+            System.out.println("Sensors: " + drive.convertSensorInput(drive.left.getVoltage()) + ", " + drive.convertSensorInput(drive.back.getVoltage()));
+
+            drive.setPoseEstimate(new Pose2d(drive.convertSensorInput(drive.left.getVoltage()) - 2, drive.convertSensorInput(drive.back.getVoltage()) - 2));
 
             Trajectory toHub = drive.trajectoryBuilder(drive.getPoseEstimate())
                     .splineToSplineHeading(pose1, Math.toRadians(0))
-                    .addTemporalMarker(1000, () -> {
-                        drive.leftIntakeSpinner.setPower(0); //Check if this or opposite direction is faster
+                    .addTemporalMarker(500, () -> {
+                        drive.leftIntakeSpinner.setPower(1);
                     })
-                    .addTemporalMarker(1500, () -> {
+                    .addTemporalMarker(700, () -> {
+                        drive.leftIntakeSpinner.setPower(-1);
+                    })
+                    .addTemporalMarker(800, () -> {
+                        drive.leftIntakeSpinner.setPower(1);
+                    })
+                    .addTemporalMarker(900, () -> {
+                        drive.leftIntakeSpinner.setPower(-1);
+                    })
+                    .addTemporalMarker(1000, () -> {
                         drive.lid.setPosition(RedQualTeleOp.CLOSE);
                         drive.slides.setTargetPosition((int) level2);
                         drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
                     })
-                    .addTemporalMarker(1750, () -> {
+                    .addTemporalMarker(1300, () -> {
                         drive.arm.setPosition(RedQualTeleOp.ARMFRONT);
                     })
                     .splineToSplineHeading(score, Math.toRadians(0))
@@ -170,7 +188,6 @@ public class FreightBluePathWarehouse extends LinearOpMode {
             drive.lid.setPosition(RedQualTeleOp.DUMP);
             sleep(600);
             drive.lid.setPosition(RedQualTeleOp.CLOSE);
-            drive.arm.setPosition(RedQualTeleOp.ARMBACK);
             drive.slides.setTargetPosition(RedQualTeleOp.levels[0]);
         }
 

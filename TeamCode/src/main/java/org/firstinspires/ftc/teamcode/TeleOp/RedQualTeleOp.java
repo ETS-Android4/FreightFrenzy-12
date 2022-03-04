@@ -48,13 +48,13 @@ public class RedQualTeleOp extends LinearOpMode {
     public static double durationMilli = 2100, rampP = -0.00055, rampF = -0.2;
 
     //Open is all the way down, will want less extreme for many cases.
-    public static double OPEN = 1, CLOSE = 0.5, DUMP = 0.69, ARMBACK = 0.5, ARMFRONT = 0.5, x = -22, y = 24, b = 31, a = -50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
+    public static double OPEN = 1, CLOSE = 0.5, DUMP = 0.76, DUMPMID = 0.67, DUMPLOW = 0.60, ARMBACK = 0.08, ARMFRONT = 0.7, ARMMID = 0.8, ARMBOT = 0.86, x = -22, y = 24, b = 31, a = -50, hubX = 28, hubY = 36; //0.23 dropper position to for auto lowest level
 
-    public static int[] levels = {100, 750, 1250, 1750};
+    public static int[] levels = {100, 750, 1250, 1500, 1700};
 
-    public static int[] intakeLiftLevels = {0, -275, -550};
+    public static int[] intakeLiftLevels = {-20, -400, -575};
 
-    private int currentLevel = 0, leftLevel = 1, rightLevel = 1;
+    private int currentLevel = 0, leftLevel = 0, rightLevel = 0;
 
     public boolean levelPressed = false, manual = false;
 
@@ -64,13 +64,15 @@ public class RedQualTeleOp extends LinearOpMode {
 
     OpenCvWebcam webCam;
 
-    Thread waitThread, dumpThread, testThread, hubThread;
+    Thread waitThread, dumpThread, ingestThread, testThread, hubThread;
 
     HardwareThread hardware;
 
     double lastHeading, lastTime = 0;
 
     ElapsedTime timeout, ducktime;
+
+    double DUMPLEVEL = DUMP;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -105,7 +107,12 @@ public class RedQualTeleOp extends LinearOpMode {
 
         config.imu.gettingInput = true;
 
-        sleep(200);
+        sleep(100);
+
+        config.dropperLid.set(CLOSE);
+        config.dropperArm.set(0.3);
+
+        sleep(1000);
 
         config.slides.setPower(-0.3);
         while(!isStopRequested() && config.limit.get()[0] == 0) {
@@ -118,8 +125,20 @@ public class RedQualTeleOp extends LinearOpMode {
 
         config.slides.setTargetPosition(slidesOffset + 100);
         config.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        config.slides.setPower(1);
+
+        sleep(300);
+
+        config.dropperArm.set(ARMBACK);
 
         config.setPoseEstimate(new Pose2d(0, 0));
+
+        config.leftIntakeLift.setTargetPosition(0);
+        config.leftIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        config.leftIntakeLift.setPower(0.6);
+        config.rightIntakeLift.setTargetPosition(0);
+        config.rightIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        config.rightIntakeLift.setPower(0.6);
 
         while(!isStopRequested() && !isStarted()) {
             telemetry.addData("Limit: ", config.limit.get()[0]);
@@ -134,9 +153,40 @@ public class RedQualTeleOp extends LinearOpMode {
         }, null);
         waitThread = new Thread(waitMillis);
 
+        Sequence ingest = new Sequence(() -> {
+            leftLevel = 2;
+            config.dropperLid.set(OPEN);
+            sleep(500);
+            config.leftIntakeSpinner.set(1);
+            config.rightIntakeSpinner.set(1);
+            sleep(200);
+            config.leftIntakeSpinner.set(-1);
+            config.rightIntakeSpinner.set(-1);
+            sleep(200);
+            config.leftIntakeSpinner.set(1);
+            config.rightIntakeSpinner.set(1);
+            sleep(100);
+            config.leftIntakeSpinner.set(-1);
+            config.rightIntakeSpinner.set(-1);
+            sleep(100);
+            leftLevel = 1;
+//            config.leftIntakeSpinner.set(0);
+//            config.rightIntakeSpinner.set(0);
+//            sleep(300);
+//            config.leftIntakeSpinner.set(1);
+//            config.rightIntakeSpinner.set(1);
+//            sleep(300);
+//            config.leftIntakeSpinner.set(0);
+//            config.rightIntakeSpinner.set(0);
+//            sleep(300);
+//            config.leftIntakeSpinner.set(-1);
+//            config.rightIntakeSpinner.set(-1);
+        });
+        ingestThread = new Thread(ingest);
+
         Sequence dump = new Sequence(() -> {
             config.dropperLid.set(DUMP);
-            sleep(600);
+            sleep(650);
             config.dropperLid.set(CLOSE);
             config.dropperArm.set(ARMBACK);
             currentLevel = 0;
@@ -235,29 +285,45 @@ public class RedQualTeleOp extends LinearOpMode {
             try {
                 hardware.waitForCycle();
 
-                config.leftIntakeLift.setTargetPosition(leftLevel);
-                config.leftIntakeLift.set(1);
-                config.rightIntakeLift.setTargetPosition(rightLevel);
-                config.rightIntakeLift.set(1);
+                config.leftIntakeLift.setTargetPosition(intakeLiftLevels[leftLevel]);
+                config.rightIntakeLift.setTargetPosition(intakeLiftLevels[rightLevel]);
 
-                if (gamepad1.x || gamepad2.x) {
+                if (gamepad1.left_bumper && gamepad1.x) {
+                    leftLevel = 2;
+                } else if (gamepad1.left_bumper && gamepad1.y) {
+                    rightLevel = 2;
+                } else if (gamepad1.x || gamepad2.x) {
                     leftLevel = 0;
                     rightLevel = 1;
-                } else if (gamepad1.b || gamepad2.b) {
+                } else if (gamepad1.y || gamepad2.y) {
                     leftLevel = 1;
                     rightLevel = 0;
                 }
 
-                if(gamepad1.a || gamepad2.a) {
+                if(gamepad2.a) {
+                    config.leftIntakeSpinner.set(-1);
+                } else if(gamepad2.b) {
+                    config.leftIntakeSpinner.set(0.3);
+                }
+
+                if(gamepad1.a) {
                     config.dropperLid.set(CLOSE);
-                } else if(gamepad1.b || gamepad2.b) {
+                } else if(gamepad1.b) {
                     config.dropperLid.set(OPEN);
+                } else if(gamepad1.right_trigger > 0.3) {
+                    config.dropperLid.set(DUMP);
                 }
 
                 if(gamepad1.back) {
                     config.dropperArm.set(ARMBACK);
                 } else if(gamepad1.start) {
                     config.dropperArm.set(ARMFRONT);
+                }
+
+                if(!ingestThread.isAlive() && gamepad2.back) {
+                    ingestThread.start();
+                } else if(!dumpThread.isAlive() && gamepad2.start) {
+                    dumpThread.start();
                 }
 
                 imuHeading = config.imu.get()[0];
@@ -303,11 +369,6 @@ public class RedQualTeleOp extends LinearOpMode {
                 config.slides.setTargetPosition(levels[currentLevel] + slidesOffset);
                 config.slides.setPower(1);
 
-                if (turning || gamepad1.left_trigger > 0.3 || gamepad1.right_trigger > 0.3) {
-                    lastHeading = imuHeading;
-                    power = 0;
-                }
-
 //                if (gamepad2.left_stick_button && ducktime.milliseconds() > durationMilli) {
 //                    ducktime.reset();
 //                }
@@ -321,7 +382,7 @@ public class RedQualTeleOp extends LinearOpMode {
 //                else if (gamepad1.b) config.dropper.set(OPEN);
 
                 double speed = gamepad1.right_bumper ? 0.3 : 1;
-                double x = 0.6 * -gamepad1.left_trigger + 0.6 * gamepad1.right_trigger +
+                double x =
                         gamepad1.left_stick_x, y = gamepad1.left_stick_y, a =
                         gamepad1.right_stick_x;
                 System.out.println("Values: " + x + ", " + y + ", " + a);
@@ -330,17 +391,12 @@ public class RedQualTeleOp extends LinearOpMode {
 
                 setPower(speed * x, -speed * y, speed * a);
 
-                if (gamepad2.start) {
-                    config.imu.resetIMU();
-                    config.setPoseEstimate(new Pose2d(0, 0));
-                }
-
                 manual = gamepad2.left_bumper;
 
                 telemetry.addData("Heading: ", imuHeading);
                 telemetry.addData("Power: ", config.backLeft.get()[0]);
                 telemetry.addData("Width: ", HubVisionPipeline.width);
-                telemetry.addData("Distance: ", config.back.get()[0]);
+                telemetry.addData("Distance: ", config.right.get()[0]);
                 telemetry.addData("HubCenterPoint: ", HubVisionPipeline.getCenterPointHub().x);
                 telemetry.addData("Current Position: ", config.getPoseEstimate());
                 //telemetry.addData("Last Heading: ", lastHeading);

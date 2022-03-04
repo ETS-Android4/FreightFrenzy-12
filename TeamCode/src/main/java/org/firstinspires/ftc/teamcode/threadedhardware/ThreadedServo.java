@@ -43,6 +43,7 @@ public class ThreadedServo implements Active {
 
     public void setHardware() {
         servo.setPosition(runVal);
+        System.out.println("Setting servo " + runVal);
     }
 
     public void updateMode() {} //As of now, no reason for this in servo.

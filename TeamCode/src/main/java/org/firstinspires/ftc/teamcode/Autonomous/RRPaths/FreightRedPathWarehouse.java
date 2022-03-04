@@ -64,29 +64,31 @@ public class FreightRedPathWarehouse extends LinearOpMode {
 
         drive.setPoseEstimate(startPose);
 
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
-        webCam.openCameraDevice();//open camera
-        webCam.setPipeline(new FreightBluePathWarehouse.duckScanPipeline());
-        webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
-        FtcDashboard.getInstance().startCameraStream(webCam, 0);
+//        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+//        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+//        webCam.openCameraDevice();//open camera
+//        webCam.setPipeline(new FreightBluePathWarehouse.duckScanPipeline());
+//        webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
+//        FtcDashboard.getInstance().startCameraStream(webCam, 0);
         double lastTime = 0;
 
         drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
+        drive.leftIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.leftIntakeLift.setPower(0.8);
         drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
+        drive.rightIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.rightIntakeLift.setPower(0.8);
 
-        drive.slides.setPower(-0.3);
-        telemetry.addData("Limit: ", drive.limit.getState());
-        telemetry.update();
-        while(!drive.limit.getState() && !isStopRequested() && !isStarted()){
-            telemetry.addData("Limit: ", drive.limit.getState());
-            telemetry.update();
-        }
-        drive.slides.setPower(0);
-        drive.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        drive.slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+//        drive.slides.setPower(-0.3);
+//        telemetry.addData("Limit: ", drive.limit.getState());
+//        telemetry.update();
+//        while(!drive.limit.getState() && !isStopRequested() && !isStarted()){
+//            telemetry.addData("Limit: ", drive.limit.getState());
+//            telemetry.update();
+//        }
+//        drive.slides.setPower(0);
+//        drive.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//        drive.slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         while(!isStarted() && !isStopRequested()) {
             telemetry.addData("Duck Location: ", duckLocation);
@@ -131,7 +133,7 @@ public class FreightRedPathWarehouse extends LinearOpMode {
         drive.arm.setPosition(RedQualTeleOp.ARMBACK);
         drive.slides.setTargetPosition(RedQualTeleOp.levels[0]);
 
-        while(time.seconds() > 10 && !isStopRequested()) {
+        while(time.seconds() < 20 && !isStopRequested()) {
 
             drive.rightIntakeSpinner.setPower(1); //Direction may be wrong
 

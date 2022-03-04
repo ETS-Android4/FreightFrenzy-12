@@ -132,6 +132,7 @@ public class SampleMecanumDrive extends MecanumDrive {
         leftIntakeLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftIntakeLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         leftIntakeLift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftIntakeLift.setDirection(DcMotorSimple.Direction.REVERSE);
         rightIntakeLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightIntakeLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightIntakeLift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
