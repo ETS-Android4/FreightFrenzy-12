@@ -25,7 +25,15 @@ public class SplineTest extends LinearOpMode {
                 .splineTo(new Vector2d(30, 30), 0)
                 .build();
 
-        drive.followTrajectory(traj);
+        drive.followTrajectoryAsync(traj);
+
+        while(!isStopRequested() && drive.isBusy() && !gamepad1.a) {
+            drive.update();
+        }
+
+        drive.setPoseEstimate(traj.end());
+
+        drive.setMotorPowers(0, 0, 0, 0);
 
         sleep(2000);
 

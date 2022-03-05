@@ -5,18 +5,15 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.acmerobotics.roadrunner.trajectory.MarkerCallback;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.SampleMecanumDrive;
-import org.firstinspires.ftc.teamcode.R;
-import org.firstinspires.ftc.teamcode.TeleOp.RedQualTeleOp;
+import org.firstinspires.ftc.teamcode.TeleOp.BlueQualTeleOp;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -48,13 +45,13 @@ public class FreightBluePathDucks extends LinearOpMode {
 
     private Pose2d startPose = new Pose2d(104, 0, Math.toRadians(0)); //Need to vary heading
 
-    public static int x1 = -48, leftX = 5, middleX = 100, rightX = 260, allY = 195;
+    public static int x1 = -48, leftX = 25, middleX = 100, rightX = 225, allY = 195;
 
     public Pose2d pose1 = new Pose2d(x1, 0), score = new Pose2d(-84);
 
     public static int duckLocation = -1, manualDuckLocation = -1;
 
-    public static double level0 = 1300, level1 = 1500, level2 = 1700, sensorSideOffset, sensorStrightOffset;
+    public static double level0 = 1350, level1 = 1550, level2 = 1700, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.65, HALF = 0.21;
 
@@ -67,78 +64,63 @@ public class FreightBluePathDucks extends LinearOpMode {
 
         drive.setPoseEstimate(startPose);
 
-//        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-//        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
-//        webCam.openCameraDevice();//open camera
-//        webCam.setPipeline(new duckScanPipeline());
-//        webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
-//        FtcDashboard.getInstance().startCameraStream(webCam, 0);
-//        double lastTime = 0;
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+        webCam.openCameraDevice();//open camera
+        webCam.setPipeline(new duckScanPipeline());
+        webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
+        FtcDashboard.getInstance().startCameraStream(webCam, 0);
 
-        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2] + 50);
+        drive.leftIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[2] + 50);
         drive.leftIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.leftIntakeLift.setPower(0.6);
-        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2] + 50);
+        drive.rightIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[2] + 50);
         drive.rightIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.rightIntakeLift.setPower(0.6);
-
-//        drive.slides.setPower(-0.3);
-//        telemetry.addData("Limit: ", drive.limit.getState());
-//        telemetry.update();
-//        while(!drive.limit.getState() && !isStopRequested() && !isStarted()){
-//            telemetry.addData("Limit: ", drive.limit.getState());
-//            telemetry.update();
-//        }
-//        drive.slides.setPower(0);
-//        drive.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-//        drive.slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         while(!isStarted() && !isStopRequested()) {
             telemetry.addData("Duck Location: ", duckLocation);
             telemetry.update();
         }
 
-        ElapsedTime time;
         waitForStart();
         if(isStopRequested()) return;
 
-        time = new ElapsedTime();
-
-        double slideTicks = level0; //0;
-//        if(duckLocation > 0) slideTicks = duckLocation == 1 ? level1 : level2;
-//        if(manualDuckLocation != -1) slideTicks = manualDuckLocation < 2 ? (manualDuckLocation == 0 ? 0 : level1) : level2;
+        double slideTicks = duckLocation == 0 ? level0 : duckLocation == 1 ? level1 : level2;
+        //if(duckLocation > 0) slideTicks = duckLocation == 1 ? level1 : level2;
+        //if(manualDuckLocation != -1) slideTicks = manualDuckLocation < 2 ? (manualDuckLocation == 0 ? 0 : level1) : level2;
 
         System.out.println("Duck: " + duckLocation + ", ticks: " + slideTicks);
 
         telemetry.addData("Position: ", drive.getPoseEstimate());
         telemetry.update();
 
-        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[1]);
-        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[1]);
+        drive.leftIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[1]);
+        drive.rightIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[1]);
 
         Trajectory offWall = drive.trajectoryBuilder(startPose)
                 .strafeLeft(11)
                 .build();
         drive.followTrajectory(offWall);
-        drive.turn(Math.toRadians(48));
+        drive.turn(Math.toRadians(44));
 
         drive.slides.setTargetPosition((int) slideTicks);
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
-        if(slideTicks == level2) drive.arm.setPosition(RedQualTeleOp.ARMFRONT);
-        else if(slideTicks == level1) drive.arm.setPosition(RedQualTeleOp.ARMMID);
-        else drive.arm.setPosition(RedQualTeleOp.ARMBOT);
+        if(slideTicks == level2) drive.arm.setPosition(BlueQualTeleOp.ARMFRONT);
+        else if(slideTicks == level1) drive.arm.setPosition(BlueQualTeleOp.ARMMID);
+        else drive.arm.setPosition(BlueQualTeleOp.ARMBOT);
         sleep(1200);
 
-        if(slideTicks == level2) drive.lid.setPosition(RedQualTeleOp.DUMP);
-        else if(slideTicks == level1) drive.lid.setPosition(RedQualTeleOp.DUMPMID);
-        else drive.lid.setPosition(RedQualTeleOp.DUMPLOW);
+        if(slideTicks == level2) drive.lid.setPosition(BlueQualTeleOp.DUMP);
+        else if(slideTicks == level1) drive.lid.setPosition(BlueQualTeleOp.DUMPMID);
+        else drive.lid.setPosition(BlueQualTeleOp.DUMPLOW);
         sleep(600);
-        drive.lid.setPosition(RedQualTeleOp.CLOSE);
-        drive.arm.setPosition(RedQualTeleOp.ARMBACK);
-        drive.slides.setTargetPosition(RedQualTeleOp.levels[0]);
+        drive.lid.setPosition(BlueQualTeleOp.CLOSE);
+        drive.arm.setPosition(BlueQualTeleOp.ARMBACK);
+        drive.slides.setTargetPosition(BlueQualTeleOp.levels[0]);
 
-        drive.turn(Math.toRadians(-135));
+        drive.turn(Math.toRadians(-131));
         Trajectory toDucks = drive.trajectoryBuilder(drive.getPoseEstimate())
                 .strafeTo(new Vector2d(122,11))
                 .build();
@@ -150,14 +132,11 @@ public class FreightBluePathDucks extends LinearOpMode {
 
         Trajectory zoom = drive.trajectoryBuilder(drive.getPoseEstimate(), true)
                 .splineTo(new Vector2d(78, 19), Math.toRadians(180))
-                .splineTo(new Vector2d(-2,24), Math.toRadians(180))
+                .splineTo(new Vector2d(-2,26), Math.toRadians(180))
                 .build();
         drive.followTrajectory(zoom);
-        Trajectory finalStrafe = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .strafeLeft(6)
-                .build();
-        drive.followTrajectory(finalStrafe);
-        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
+
+        drive.leftIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[0]);
         while(!isStopRequested()){}
     }
 

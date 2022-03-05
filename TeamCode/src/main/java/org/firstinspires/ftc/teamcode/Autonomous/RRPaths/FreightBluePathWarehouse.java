@@ -5,18 +5,22 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.acmerobotics.roadrunner.trajectory.MarkerCallback;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
+import com.acmerobotics.roadrunner.trajectory.constraints.AngularVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.MecanumVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.MinVelocityConstraint;
+import com.acmerobotics.roadrunner.trajectory.constraints.ProfileAccelerationConstraint;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.apache.commons.math3.analysis.function.Min;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.DriveConstants;
 import org.firstinspires.ftc.teamcode.Autonomous.NewRoadRunner.SampleMecanumDrive;
-import org.firstinspires.ftc.teamcode.R;
-import org.firstinspires.ftc.teamcode.TeleOp.RedQualTeleOp;
+import org.firstinspires.ftc.teamcode.TeleOp.BlueQualTeleOp;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -33,6 +37,8 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.sampleHe
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.sampleWidth;
 import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 
+import java.util.Arrays;
+
 /*
  * Op mode for tuning follower PID coefficients (located in the drive base classes). The robot
  * drives in a DISTANCE-by-DISTANCE square indefinitely.
@@ -42,21 +48,25 @@ import static org.firstinspires.ftc.teamcode.Vision.BarCodeDuckPipeline.thresh;
 @Autonomous(group = "drive")
 public class FreightBluePathWarehouse extends LinearOpMode {
 
-    public static double back = 58;
-
     public static double pow = -1;
 
     private Pose2d startPose = new Pose2d(60, 0, Math.toRadians(0)); //Need to vary heading
 
-    public static int x1 = -48, leftX = 5, middleX = 100, rightX = 260, allY = 195;
+    public static int leftX = 25, middleX = 100, rightX = 180, allY = 195;
 
-    public Pose2d pose1 = new Pose2d(x1, 0), score = new Pose2d(-84);
+    public static int x1 = 40, x2 = 16;
+
+    public Pose2d pose1 = new Pose2d(x1, -3), score = new Pose2d(74, -4), warehouse = new Pose2d(x2, -1);
 
     public static int duckLocation = -1, manualDuckLocation = -1;
 
-    public static double level0 = 1500, level1 = 1500, level2 = 1700, sensorSideOffset, sensorStrightOffset;
+    public static double level0 = 350, level1 = 1450, level2 = 1650, sensorSideOffset, sensorStrightOffset;
 
     public static double OPEN = 0.02, CLOSED = 0.65, HALF = 0.21;
+
+    public MinVelocityConstraint slowVel = new MinVelocityConstraint(Arrays.asList(new AngularVelocityConstraint(Math.toRadians(360)), new MecanumVelocityConstraint(15,
+            DriveConstants.TRACK_WIDTH)));
+    public ProfileAccelerationConstraint slowAccel = new ProfileAccelerationConstraint(10);
 
     SampleMecanumDrive drive;
 
@@ -67,31 +77,20 @@ public class FreightBluePathWarehouse extends LinearOpMode {
 
         drive.setPoseEstimate(startPose);
 
-//        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-//        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
-//        webCam.openCameraDevice();//open camera
-//        webCam.setPipeline(new duckScanPipeline());
-//        webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
-//        FtcDashboard.getInstance().startCameraStream(webCam, 0);
-//        double lastTime = 0;
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        OpenCvCamera webCam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+        webCam.openCameraDevice();//open camera
+        webCam.setPipeline(new duckScanPipeline());
+        webCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);//display on RC
+        FtcDashboard.getInstance().startCameraStream(webCam, 0);
+        double lastTime = 0;
 
-        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2] + 50);
+        drive.leftIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[2] + 100);
         drive.leftIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        drive.leftIntakeLift.setPower(0.6);
-        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2] + 50);
+        drive.leftIntakeLift.setPower(0.4);
+        drive.rightIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[2] + 100);
         drive.rightIntakeLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        drive.rightIntakeLift.setPower(0.6);
-
-//        drive.slides.setPower(-0.3);
-//        telemetry.addData("Limit: ", drive.limit.getState());
-//        telemetry.update();
-//        while(!drive.limit.getState() && !isStopRequested() && !isStarted()){
-//            telemetry.addData("Limit: ", drive.limit.getState());
-//            telemetry.update();
-//        }
-//        drive.slides.setPower(0);
-//        drive.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-//        drive.slides.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        drive.rightIntakeLift.setPower(0.4);
 
         while(!isStarted() && !isStopRequested()) {
             telemetry.addData("Duck Location: ", duckLocation);
@@ -104,7 +103,7 @@ public class FreightBluePathWarehouse extends LinearOpMode {
 
         time = new ElapsedTime();
 
-        double slideTicks = level2; //0;
+        double slideTicks = duckLocation == 0 ? level0 : duckLocation == 1 ? level1 : level2; //0;
 //        if(duckLocation > 0) slideTicks = duckLocation == 1 ? level1 : level2;
 //        if(manualDuckLocation != -1) slideTicks = manualDuckLocation < 2 ? (manualDuckLocation == 0 ? 0 : level1) : level2;
 
@@ -113,93 +112,121 @@ public class FreightBluePathWarehouse extends LinearOpMode {
         telemetry.addData("Position: ", drive.getPoseEstimate());
         telemetry.update();
 
-        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
-        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[1]);
+        drive.leftIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[1]);
+        drive.rightIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[1]);
+
+        sleep(400);
 
         drive.slides.setTargetPosition((int) slideTicks);
         drive.slides.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         drive.slides.setPower(1);
-        if(slideTicks == level2) drive.arm.setPosition(RedQualTeleOp.ARMFRONT);
-        else if(slideTicks == level1) drive.arm.setPosition(RedQualTeleOp.ARMMID);
-        else drive.arm.setPosition(RedQualTeleOp.ARMBOT);
+        if(slideTicks == level2) drive.arm.setPosition(BlueQualTeleOp.ARMFRONT);
+        else if(slideTicks == level1) drive.arm.setPosition(BlueQualTeleOp.ARMMID);
+        else drive.arm.setPosition(BlueQualTeleOp.ARMMID); //drive.arm.setPosition(BlueQualTeleOp.ARMBOT);
 
         Trajectory offWall = drive.trajectoryBuilder(startPose)
-                .forward(20)
+                .forward(18)
                 .build();
         drive.followTrajectory(offWall);
 
-        if(slideTicks == level2) drive.lid.setPosition(RedQualTeleOp.DUMP);
-        else if(slideTicks == level1) drive.lid.setPosition(RedQualTeleOp.DUMPMID);
-        else drive.lid.setPosition(RedQualTeleOp.DUMPLOW);
-        sleep(600);
-        drive.lid.setPosition(RedQualTeleOp.CLOSE);
-        drive.arm.setPosition(RedQualTeleOp.ARMBACK);
-        drive.slides.setTargetPosition(RedQualTeleOp.levels[0]);
-
-        while(time.seconds() < 20 && !isStopRequested()) {
-
-            drive.leftIntakeSpinner.setPower(-1); //Not sure direction
-
-            Trajectory backup = drive.trajectoryBuilder(drive.getPoseEstimate())
-                    .back(back)
-                    .addTemporalMarker(500, () -> {
-                        drive.arm.setPosition(RedQualTeleOp.ARMBACK);
-                    })
-                    .build();
-            drive.followTrajectoryAsync(backup);
-
-            while(!isStopRequested() && drive.isBusy()) { //Add limit switch
-                drive.update();
-            }
-
-            drive.lid.setPosition(RedQualTeleOp.OPEN);
-            drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[2]);
-
-            System.out.println("Sensors: " + drive.convertSensorInput(drive.left.getVoltage()) + ", " + drive.convertSensorInput(drive.back.getVoltage()));
-
-            drive.setPoseEstimate(new Pose2d(drive.convertSensorInput(drive.left.getVoltage()) - 2, drive.convertSensorInput(drive.back.getVoltage()) - 2));
-
+        if(slideTicks == level0) {
             Trajectory toHub = drive.trajectoryBuilder(drive.getPoseEstimate())
-                    .splineToSplineHeading(pose1, Math.toRadians(0))
-                    .addTemporalMarker(500, () -> {
-                        drive.leftIntakeSpinner.setPower(1);
-                    })
-                    .addTemporalMarker(700, () -> {
-                        drive.leftIntakeSpinner.setPower(-1);
-                    })
-                    .addTemporalMarker(800, () -> {
-                        drive.leftIntakeSpinner.setPower(1);
-                    })
-                    .addTemporalMarker(900, () -> {
-                        drive.leftIntakeSpinner.setPower(-1);
-                    })
-                    .addTemporalMarker(1000, () -> {
-                        drive.lid.setPosition(RedQualTeleOp.CLOSE);
-                        drive.slides.setTargetPosition((int) level2);
-                        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
-                    })
-                    .addTemporalMarker(1300, () -> {
-                        drive.arm.setPosition(RedQualTeleOp.ARMFRONT);
-                    })
-                    .splineToSplineHeading(score, Math.toRadians(0))
+                    .strafeLeft(15)
                     .build();
             drive.followTrajectory(toHub);
 
-            drive.lid.setPosition(RedQualTeleOp.DUMP);
-            sleep(600);
-            drive.lid.setPosition(RedQualTeleOp.CLOSE);
-            drive.slides.setTargetPosition(RedQualTeleOp.levels[0]);
+            drive.lid.setPosition(BlueQualTeleOp.DUMPMID);
+            sleep(650);
+
+            Trajectory towall = drive.trajectoryBuilder(drive.getPoseEstimate())
+                    .strafeRight(16)
+                    .build();
+            drive.followTrajectory(towall);
         }
 
-        drive.leftIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
-        drive.rightIntakeLift.setTargetPosition(RedQualTeleOp.intakeLiftLevels[0]);
+        if(slideTicks == level2) drive.lid.setPosition(BlueQualTeleOp.DUMP);
+        else if(slideTicks == level1) drive.lid.setPosition(BlueQualTeleOp.DUMPMID);
+        sleep(500);
+        drive.lid.setPosition(BlueQualTeleOp.CLOSE);
+        drive.arm.setPosition(BlueQualTeleOp.ARMBACK);
+        drive.slides.setTargetPosition(BlueQualTeleOp.levels[0]);
 
-        drive.leftIntakeSpinner.setPower(1); //Not sure direction
+        while(time.seconds() < 20 && !isStopRequested()) {
 
-        Trajectory park = drive.trajectoryBuilder(drive.getPoseEstimate())
-                .back(back - 6)
+            drive.setPoseEstimate(new Pose2d(drive.getPoseEstimate().getX(), drive.convertSensorInput(drive.back.getVoltage())));
+
+            drive.slides.setTargetPosition(BlueQualTeleOp.levels[0]);
+
+            Trajectory backup = drive.trajectoryBuilder(drive.getPoseEstimate(), true)
+                    .strafeTo(pose1.vec())
+                    .build();
+            drive.followTrajectory(backup);
+
+            drive.leftIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[0]);
+
+            drive.leftIntakeSpinner.setPower(-1);
+
+            drive.lid.setPosition(BlueQualTeleOp.OPEN);
+
+            Trajectory pickup = drive.trajectoryBuilder(drive.getPoseEstimate(), true, slowVel, slowAccel)
+                    .strafeTo(warehouse.vec())
+                    .build();
+            drive.followTrajectoryAsync(pickup);
+
+            while (!isStopRequested() && drive.isBusy() && drive.leftLimit.getState()) {
+                    drive.update();
+            }
+
+            drive.setPoseEstimate(pickup.end());
+
+            drive.update();
+
+            drive.setMotorPowers(0, 0, 0, 0);
+
+            sleep(400);
+
+            drive.leftIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[2]);
+
+            sleep(650);
+            drive.leftIntakeSpinner.setPower(1);
+            sleep(200);
+            drive.leftIntakeSpinner.setPower(-1);
+            sleep(200);
+            drive.leftIntakeSpinner.setPower(0);
+            drive.leftIntakeLift.setTargetPosition(BlueQualTeleOp.intakeLiftLevels[1] + 100);
+            drive.leftIntakeLift.setPower(0.4);
+            sleep(200);
+            drive.lid.setPosition(BlueQualTeleOp.CLOSE);
+            drive.slides.setTargetPosition((int) level2);
+
+            System.out.println("Sensors: " + drive.convertSensorInput(drive.left.getVoltage()) + ", " + drive.convertSensorInput(drive.back.getVoltage()));
+
+            drive.setPoseEstimate(new Pose2d(drive.convertSensorInput(drive.left.getVoltage()) - 2, drive.convertSensorInput(drive.back.getVoltage())));
+
+            Trajectory toHub = drive.trajectoryBuilder(drive.getPoseEstimate())
+                    .splineToConstantHeading(pose1.vec(), Math.toRadians(0))
+                    .splineToConstantHeading(score.vec(), Math.toRadians(0))
+                    .build();
+            drive.followTrajectory(toHub);
+
+            drive.arm.setPosition(BlueQualTeleOp.ARMFRONT);
+            sleep(400);
+            drive.lid.setPosition(BlueQualTeleOp.DUMP);
+            sleep(650);
+            drive.lid.setPosition(BlueQualTeleOp.CLOSE);
+            sleep(200);
+            drive.arm.setPosition(BlueQualTeleOp.ARMBACK);
+            sleep(300);
+        }
+
+        drive.setPoseEstimate(new Pose2d(drive.getPoseEstimate().getX(), drive.convertSensorInput(drive.back.getVoltage())));
+
+        drive.slides.setTargetPosition(BlueQualTeleOp.levels[0]);
+
+        Trajectory park = drive.trajectoryBuilder(drive.getPoseEstimate(), true)
+                .splineToSplineHeading(new Pose2d(warehouse.getX() + 4, warehouse.getY()), Math.toRadians(180))
                 .build();
-        drive.followTrajectoryAsync(park);
+        drive.followTrajectory(park);
     }
 
     public void imuTurn(double angle) {

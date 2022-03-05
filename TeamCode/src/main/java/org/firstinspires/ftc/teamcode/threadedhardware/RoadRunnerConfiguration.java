@@ -100,7 +100,7 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
     public ThreadedServo dropperArm, dropperLid;
     public ThreadedCRServo leftIntakeSpinner, rightIntakeSpinner, leftDuckSpinner, rightDuckSpinner;
 
-    public ThreadedDigitalSensor limit;
+    public ThreadedDigitalSensor limit, rightLimit, leftLimit;
 
     public ThreadedIMU imu; //A gyroscope in the expansion hubs (inertial measurement unit)
 
@@ -142,6 +142,8 @@ public class RoadRunnerConfiguration extends MecanumDrive implements Configurati
         dropperArm = new ThreadedServo(hwMap, "dumperArm");
         dropperLid = new ThreadedServo(hwMap, "dumperLid");
         limit = new ThreadedDigitalSensor(hwMap, "limit");
+        leftLimit = new ThreadedDigitalSensor(hwMap, "leftLimit");
+        rightLimit = new ThreadedDigitalSensor(hwMap, "rightLimit");
         imu = new ThreadedIMU(hwMap);
 
         motors = Arrays.asList(frontLeft, backLeft, backRight, frontRight);

@@ -77,7 +77,7 @@ public class SampleMecanumDrive extends MecanumDrive {
     public DcMotorImplEx slides, leftIntakeLift, rightIntakeLift;
     public Servo arm, lid;
     public CRServo leftIntakeSpinner, rightIntakeSpinner, leftDuckSpinner, rightDuckSpinner;
-    public DigitalChannel limit;
+    public DigitalChannel limit, leftLimit, rightLimit;
 
     private DcMotorEx leftFront, leftRear, rightRear, rightFront;
     private List<DcMotorEx> motors;
@@ -118,6 +118,8 @@ public class SampleMecanumDrive extends MecanumDrive {
         rightFront = hardwareMap.get(DcMotorEx.class, "front_right_motor");
         slides = hardwareMap.get(DcMotorImplEx.class,"slides");
         limit = hardwareMap.get(DigitalChannel.class, "limit");
+        leftLimit = hardwareMap.get(DigitalChannel.class, "leftLimit");
+        rightLimit = hardwareMap.get(DigitalChannel.class, "rightLimit");
         arm = hardwareMap.get(Servo.class, "dumperArm");
         lid = hardwareMap.get(Servo.class, "dumperLid");
         leftDuckSpinner = hardwareMap.get(CRServo.class, "leftDuckSpinner");
@@ -185,6 +187,10 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose, double startHeading) {
         return new TrajectoryBuilder(startPose, startHeading, VEL_CONSTRAINT, ACCEL_CONSTRAINT);
+    }
+
+    public TrajectoryBuilder trajectoryBuilder(Pose2d startPose, boolean reversed, MinVelocityConstraint vel, ProfileAccelerationConstraint accel){
+        return new TrajectoryBuilder(startPose, reversed, vel, accel);
     }
 
     public TrajectorySequenceBuilder trajectorySequenceBuilder(Pose2d startPose) {
